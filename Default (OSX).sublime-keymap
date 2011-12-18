@@ -1,0 +1,3 @@
+[
+    { "keys": ["ctrl+]"], "command": "jump_to_definition", "args": {"action": "lint"} }
+]

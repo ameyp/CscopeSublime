@@ -1,0 +1,7 @@
+[
+    {
+        "caption": "Cscope: Jump to definition",
+        "command": "jump_to_definition",
+        "args": {"action": "lint"}
+    }
+]
