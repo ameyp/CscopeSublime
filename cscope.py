@@ -8,13 +8,19 @@ class JumpToDefinitionCommand(sublime_plugin.TextCommand):
         self.view = view
         self.database = None
         #self.panel  = self.view.window().get_output_panel("cscope")
- 
+
     def run(self, edit):
         # self.word_separators = self.view.settings().get('word_separators')
         # print self.view.sel()
         # self.view.insert(edit, 0, "Hello, World!")
         if self.database == None:
             self.find_database()
+
+        newline = ''
+        if sublime.platform() == "windows":
+            newline = '\r\n'
+        else:
+            newline = '\n'
 
         one = self.view.sel()[0].a
         two = self.view.sel()[0].b
@@ -30,14 +36,20 @@ class JumpToDefinitionCommand(sublime_plugin.TextCommand):
             # 4 ==> text string
             # 5 ==> egrep pattern
             # 6 ==> files
-            arg_list = ['cscope.exe', '-dL', '-f', self.database, '-1' + word]
-            self.proc = subprocess.Popen(arg_list, 
-                                         #executable="cscope.exe",
+            arg_list = ['cscope', '-dL', '-f', self.database, '-1' + word]
+            if (sublime.platform() == "windows"):
+                self.proc = subprocess.Popen(arg_list,
                                          creationflags=0x08000000,
                                          shell=False,
                                          stdout=subprocess.PIPE,
                                          stderr=subprocess.PIPE)
-            output = self.proc.communicate()[0].split('\r\n')
+            else:
+                self.proc = subprocess.Popen(arg_list,
+                                         shell=False,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
+            output = self.proc.communicate()[0].split(newline)
+            print output
             self.matches = []
             for i in output:
                 match = re.match('(\S+?)\s+?' + word + '\s+(\d+)\s+(.+)', i)
