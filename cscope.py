@@ -36,18 +36,14 @@ class JumpToDefinitionCommand(sublime_plugin.TextCommand):
             # 4 ==> text string
             # 5 ==> egrep pattern
             # 6 ==> files
-            arg_list = ['cscope', '-dL', '-f', self.database, '-1' + word]
-            if (sublime.platform() == "windows"):
-                self.proc = subprocess.Popen(arg_list,
-                                         creationflags=0x08000000,
-                                         shell=False,
-                                         stdout=subprocess.PIPE,
-                                         stderr=subprocess.PIPE)
-            else:
-                self.proc = subprocess.Popen(arg_list,
-                                         shell=False,
-                                         stdout=subprocess.PIPE,
-                                         stderr=subprocess.PIPE)
+            cscope_arg_list = ['cscope', '-dL', '-f', self.database, '-1' + word]
+            popen_arg_list = {
+                              "shell": False,
+                              "stdout": subprocess.PIPE,
+                              "stderr": subprocess.PIPE
+                             }
+ 
+            self.proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
             output = self.proc.communicate()[0].split(newline)
             print output
             self.matches = []
