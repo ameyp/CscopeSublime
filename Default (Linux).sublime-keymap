@@ -1,3 +1,11 @@
 [
-    { "keys": ["ctrl+]"], "command": "jump_to_definition" }
+    {
+	    "keys": ["ctrl+\\"],
+    	"command": "show_overlay",
+    	"args":
+    	{
+    		"overlay": "command_palette",
+    		"text": "Cscope: "
+    	}
+    }
 ]
