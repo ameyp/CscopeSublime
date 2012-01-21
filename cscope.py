@@ -41,9 +41,10 @@ class JumpToDefinitionCommand(sublime_plugin.TextCommand):
                               "shell": False,
                               "stdout": subprocess.PIPE,
                               "stderr": subprocess.PIPE
-                             }
+                              }
+            if (sublime.platform() == "windows"):
+                popen_arg_list["creationflags"] = 0x08000000
  
-            self.proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
             output = self.proc.communicate()[0].split(newline)
             print output
             self.matches = []
