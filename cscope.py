@@ -77,16 +77,16 @@ class CscopeCommand(sublime_plugin.TextCommand):
         proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
         output = proc.communicate()[0].split(newline)
         #print output
-        matches = []
+        self.matches = []
         for i in output:
             match = self.match_output_line(i, mode)
             if match != None:
-                matches.append(match)
+                self.matches.append(match)
                 #print "File ", match.group(1), ", Line ", match.group(2), ", Instance ", match.group(3)
 
         #self.view.window().run_command("show_overlay", {"overlay": "goto", "text": "@"})
         options = []
-        for match in matches:
+        for match in self.matches:
             options.append("%(file)s:%(line)s - %(instance)s" % match)
         
         return options
