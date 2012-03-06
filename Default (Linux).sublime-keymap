@@ -1,11 +1,19 @@
 [
     {
-	    "keys": ["ctrl+\\"],
+	"keys": ["ctrl+\\"],
     	"command": "show_overlay",
     	"args":
     	{
     		"overlay": "command_palette",
     		"text": "Cscope: "
     	}
+    },
+    {
+	"keys": ["ctrl+shift+["],
+    	"command": "goback"
+    },
+    {
+	"keys": ["ctrl+shift+]"],
+    	"command": "forward"
     }
 ]
