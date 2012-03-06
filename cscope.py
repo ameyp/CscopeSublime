@@ -3,7 +3,32 @@ import os
 import re
 import subprocess
 
+class GobackCommand(sublime_plugin.TextCommand):
+    def __init__(self,view):
+        self.view = view
+    def run(self, edit):
+        if len(CscopeCommand.backLines) > 0 :
+            position = CscopeCommand.backLines.pop()
+            CscopeCommand.forwardLines.insert(0,getCurPosition(self.view))
+            del CscopeCommand.forwardLines[100:]
+            sublime.active_window().open_file(position,sublime.ENCODED_POSITION)
+class ForwardCommand(sublime_plugin.TextCommand):
+    def __init__(self,view):
+        self.view = view
+    def run(self, edit):
+        if len(CscopeCommand.forwardLines) > 0:
+            position = CscopeCommand.forwardLines.pop()
+            CscopeCommand.backLines.insert(0,getCurPosition(self.view))
+            del CscopeCommand.backLines[100:]
+            sublime.active_window().open_file(position,sublime.ENCODED_POSITION)
+
+def getCurPosition(view):
+    return view.file_name()+":"+str(view.rowcol(view.sel()[0].a)[0]+1)
+    
 class CscopeCommand(sublime_plugin.TextCommand):
+    backLines=[]
+    forwardLines=[]
+
     def __init__(self, view):
         self.view = view
         self.database = None
@@ -32,6 +57,9 @@ class CscopeCommand(sublime_plugin.TextCommand):
         line = self.matches[picked]["line"]
         filepath = os.path.join(self.root, self.matches[picked]["file"])
         if os.path.isfile(filepath):
+            
+            self.backLines.insert(0,getCurPosition(self.view))
+            del self.backLines[100:]
             sublime.active_window().open_file(filepath + ":" + line, sublime.ENCODED_POSITION)
 
     def find_database(self):
@@ -75,7 +103,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
             popen_arg_list["creationflags"] = 0x08000000
 
         proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
-        output = proc.communicate()[0].split(newline)
+        output=proc.communicate()[0].split(newline)
         #print output
         self.matches = []
         for i in output:
@@ -100,16 +128,16 @@ class CscopeCommand(sublime_plugin.TextCommand):
         match = re.match('(\S+?)\s+?\S+\s+(\d+)\s+(.+)', line)
  
         if match != None:
-        #    if match.lastindex == 4:
-        #        return {
-        #                "file": match.group(1),
-        #                "line": match.group(3),
-        #                "instance": match.group(4)
-        #                }
-        #    else:
+            #if match.lastindex == 4:
+            #    return {
+            #            "file": match.group(1),
+            #            "line": match.group(3),
+            #            "instance": match.group(4)
+            #            }
+            #else:
             return {
-                    "file": match.group(1),
-                    "line": match.group(2),
-                    "instance": match.group(3)
+                   "file": match.group(1),
+                   "line": match.group(2),
+                   "instance": match.group(3)
                     }
         return None
