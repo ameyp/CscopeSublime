@@ -22,3 +22,9 @@ Installation
 Overview
 ========
 Only global symbol lookup and jump to function definition work at the moment. Default keybinding is Ctrl/Super+\. Rewinding to the previous position in the stack with Ctrl+t hasn't been added yet. The plugin will recursively search for the cscope database in parent directories of the currently open file until it either finds the database or reaches the root directory.
+
+Update
+======
+"Find C symbols":Match the symbols in other files.
+Add two mode:"Find the functions called by this function" and "Find the functions calling this function".
+All the modification are based on fork from "https://github.com/ameyp/CscopeSublime".
