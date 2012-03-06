@@ -4,9 +4,19 @@
 		"command": "cscope",
 		"args": {"mode": 0}
 	},
-    {
-        "caption": "Cscope: Jump to function definition",
-        "command": "cscope",
+    	{
+        	"caption": "Cscope: Jump to function definition",
+        	"command": "cscope",
 		"args": {"mode": 1}
-    }
+    	},
+	{
+		"caption": "Cscope: Look up functions called by this function",
+		"command": "cscope",
+		"args": {"mode": 2}
+	},
+	{
+		"caption": "Cscope: Look up functions calling this function",
+		"command": "cscope",
+		"args": {"mode": 3}
+	}
 ]
