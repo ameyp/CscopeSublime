@@ -38,7 +38,32 @@ class CscopeVisiter(sublime_plugin.EventListener):
             else:
                 print "Unable to determine root for: %s" % (view.substr(view.line(0)))
 
+class GobackCommand(sublime_plugin.TextCommand):
+    def __init__(self,view):
+        self.view = view
+    def run(self, edit):
+        if len(CscopeCommand.backLines) > 0 :
+            position = CscopeCommand.backLines.pop()
+            CscopeCommand.forwardLines.insert(0,getCurPosition(self.view))
+            del CscopeCommand.forwardLines[100:]
+            sublime.active_window().open_file(position,sublime.ENCODED_POSITION)
+class ForwardCommand(sublime_plugin.TextCommand):
+    def __init__(self,view):
+        self.view = view
+    def run(self, edit):
+        if len(CscopeCommand.forwardLines) > 0:
+            position = CscopeCommand.forwardLines.pop()
+            CscopeCommand.backLines.insert(0,getCurPosition(self.view))
+            del CscopeCommand.backLines[100:]
+            sublime.active_window().open_file(position,sublime.ENCODED_POSITION)
+
+def getCurPosition(view):
+    return view.file_name()+":"+str(view.rowcol(view.sel()[0].a)[0]+1)
+    
 class CscopeCommand(sublime_plugin.TextCommand):
+    backLines=[]
+    forwardLines=[]
+
     def __init__(self, view):
         self.view = view
         self.database = None
