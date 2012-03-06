@@ -25,6 +25,6 @@ Only global symbol lookup and jump to function definition work at the moment. De
 
 Update
 ======
-"Find C symbols":Match the symbols in other files.
-Add two mode:"Find the functions called by this function" and "Find the functions calling this function".
+* "Find C symbols":Match the symbols in other files.
+* Add two mode:"Find the functions called by this function" and "Find the functions calling this function".
 All the modification are based on fork from "https://github.com/ameyp/CscopeSublime".
