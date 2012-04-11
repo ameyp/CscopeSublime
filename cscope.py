@@ -43,7 +43,8 @@ class GobackCommand(sublime_plugin.TextCommand):
         self.view = view
     def run(self, edit):
         if len(CscopeCommand.backLines) > 0 :
-            position = CscopeCommand.backLines.pop()
+            position = CscopeCommand.backLines[0]
+            del CscopeCommand.backLines[0]
             CscopeCommand.forwardLines.insert(0,getCurPosition(self.view))
             del CscopeCommand.forwardLines[100:]
             sublime.active_window().open_file(position,sublime.ENCODED_POSITION)
@@ -52,7 +53,8 @@ class ForwardCommand(sublime_plugin.TextCommand):
         self.view = view
     def run(self, edit):
         if len(CscopeCommand.forwardLines) > 0:
-            position = CscopeCommand.forwardLines.pop()
+            position = CscopeCommand.forwardLines[0]
+            del CscopeCommand.forwardLines[0]
             CscopeCommand.backLines.insert(0,getCurPosition(self.view))
             del CscopeCommand.backLines[100:]
             sublime.active_window().open_file(position,sublime.ENCODED_POSITION)
