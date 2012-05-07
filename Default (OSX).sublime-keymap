@@ -1,3 +1,19 @@
 [
-    { "keys": ["super+\\"], "command": "jump_to_definition" }
+    {
+        "keys": ["super+\\"],
+    	"command": "show_overlay",
+    	"args":
+    	{
+    		"overlay": "command_palette",
+    		"text": "Cscope: "
+    	}
+    },
+    {
+	"keys": ["super+shift+["],
+    	"command": "goback"
+    },
+    {
+	"keys": ["super+shift+]"],
+    	"command": "forward"
+    }
 ]
