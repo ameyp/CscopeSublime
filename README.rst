@@ -25,3 +25,8 @@ Update
 * Add two mode:"Find the functions called by this function" and "Find the functions calling this function".
 * Add "Goback"(ctr+shift+]) and "Forward"(ctr+shift+[) features to jump among the positions.
 All the modification are based on fork from "https://github.com/ameyp/CscopeSublime".
+
+Issues
+======
+In Mac OS, the python may not find the "cscope" even if you had been installed it well. 
+The simple solution is, find the cscope.py, in line 98, cscope_arg_list = [ ...], change "cscope" to "{path}/cscope".({path} you can get from "which cscope".
