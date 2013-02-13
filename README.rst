@@ -2,7 +2,7 @@
 Cscope
 =========
 
-A rendition of Vim's command-line mode for Sublime Text 2.
+A plugin to use Cscope for code navigation from inside Sublime Text 2.
 
 License
 =======
