@@ -22,6 +22,15 @@ class CscopeCommand(sublime_plugin.TextCommand):
             word = self.view.substr(self.view.word(sel))
             #print "Word: ", word
             options = self.run_cscope(mode, word)
+            cscope_view = self.view.window().new_file()
+            cscope_view.set_scratch(True)
+            cscope_view.set_name(word)
+
+            cscope_edit = cscope_view.begin_edit()
+            cscope_view.insert(cscope_edit, 0, "\n".join(options))
+            cscope_view.end_edit(cscope_edit)
+
+            cscope_view.set_read_only(true)
             self.view.window().show_quick_panel(options, self.on_done)
             #self.view.window().run_command("show_panel", {"panel": "output." + "cscope"})
     
