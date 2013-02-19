@@ -29,6 +29,7 @@ class CscopeVisiter(sublime_plugin.EventListener):
                                 filename = m.group(1)
                                 lineno = m.group(2)
                                 print "Opening file '%s'" % (filepath + ":" + lineno)
+                                CscopeCommand.add_to_history( getEncodedPosition(filepath, lineno) )
                                 sublime.active_window().open_file(filepath + ":" + lineno, sublime.ENCODED_POSITION)
                             else:
                                 print "Something went wrong."
@@ -41,30 +42,80 @@ class CscopeVisiter(sublime_plugin.EventListener):
 class GobackCommand(sublime_plugin.TextCommand):
     def __init__(self,view):
         self.view = view
+    
     def run(self, edit):
-        if len(CscopeCommand.backLines) > 0 :
-            position = CscopeCommand.backLines[0]
-            del CscopeCommand.backLines[0]
-            CscopeCommand.forwardLines.insert(0,getCurPosition(self.view))
-            del CscopeCommand.forwardLines[100:]
-            sublime.active_window().open_file(position,sublime.ENCODED_POSITION)
+        if not CscopeCommand.is_history_empty():
+            file_name = CscopeCommand.pop_latest_from_history()
+            while file_name == getCurrentPosition(self.view):
+                file_name = CscopeCommand.pop_latest_from_history()
+
+            CscopeCommand.add_to_future( getCurrentPosition(self.view) )
+            sublime.active_window().open_file(file_name, sublime.ENCODED_POSITION)
+
 class ForwardCommand(sublime_plugin.TextCommand):
     def __init__(self,view):
         self.view = view
+    
     def run(self, edit):
-        if len(CscopeCommand.forwardLines) > 0:
-            position = CscopeCommand.forwardLines[0]
-            del CscopeCommand.forwardLines[0]
-            CscopeCommand.backLines.insert(0,getCurPosition(self.view))
-            del CscopeCommand.backLines[100:]
-            sublime.active_window().open_file(position,sublime.ENCODED_POSITION)
+        if not CscopeCommand.is_future_empty():
+            file_name = CscopeCommand.pop_latest_from_future()
+            while file_name == getCurrentPosition(self.view):
+                file_name = CscopeCommand.pop_latest_from_future()
 
-def getCurPosition(view):
-    return view.file_name()+":"+str(view.rowcol(view.sel()[0].a)[0]+1)
+            CscopeCommand.add_to_history( getCurrentPosition(self.view) )
+            sublime.active_window().open_file(file_name, sublime.ENCODED_POSITION)
+
+def getEncodedPosition(file_name, line_num):
+    return file_name + ":" + str(line_num)
+
+def getCurrentPosition(view):
+    return getEncodedPosition( view.file_name(), view.rowcol( view.sel()[0].a )[0] + 1 )
     
 class CscopeCommand(sublime_plugin.TextCommand):
-    backLines=[]
-    forwardLines=[]
+    _backLines = []
+    _forwardLines = []
+
+    @staticmethod
+    def is_history_empty():
+        return len(CscopeCommand._backLines) == 0
+
+    @staticmethod
+    def add_to_history(line):
+        print "add_to_history"
+        print CscopeCommand._backLines, CscopeCommand._forwardLines
+        if CscopeCommand.is_history_empty() or CscopeCommand._backLines[0] != line:
+            CscopeCommand._backLines.insert(0, line)
+        if len(CscopeCommand._backLines) > 100:
+            CscopeCommand._backLines = CscopeCommand._backLines[:100]
+
+    @staticmethod
+    def pop_latest_from_history():
+        print "pop_latest_from_history"
+        print CscopeCommand._backLines, CscopeCommand._forwardLines
+        latest = CscopeCommand._backLines[0]
+        CscopeCommand._backLines = CscopeCommand._backLines[1:]
+        return latest
+
+    @staticmethod
+    def is_future_empty():
+        return len(CscopeCommand._forwardLines) == 0
+
+    @staticmethod
+    def add_to_future(line):
+        print "add_to_future"
+        print CscopeCommand._backLines, CscopeCommand._forwardLines
+        if CscopeCommand.is_future_empty() or CscopeCommand._forwardLines[0] != line:
+            CscopeCommand._forwardLines.insert(0, line)
+        if len(CscopeCommand._forwardLines) > 100:
+            CscopeCommand._forwardLines = CscopeCommand._forwardLines[:100]
+
+    @staticmethod
+    def pop_latest_from_future():
+        print "pop_latest_from_future"
+        print CscopeCommand._backLines, CscopeCommand._forwardLines
+        latest = CscopeCommand._forwardLines[0]
+        CscopeCommand._forwardLines = CscopeCommand._forwardLines[1:]
+        return latest
 
     def __init__(self, view):
         self.view = view
@@ -86,6 +137,8 @@ class CscopeCommand(sublime_plugin.TextCommand):
         # print self.view.sel()
         # self.view.insert(edit, 0, "Hello, World!")
         # print mode
+        CscopeCommand.add_to_history( getCurrentPosition(self.view) )
+
         one = self.view.sel()[0].a
         two = self.view.sel()[0].b
         self.view.sel().add(sublime.Region(one,
