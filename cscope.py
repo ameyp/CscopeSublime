@@ -166,7 +166,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
     def _append_match_string(self, match, command_mode):
         default = "{0}".format(match["file"])
         if command_mode == 0:
-            return "{0}:{1} - {2}".format(match["file"], match["line"], match["instance"])
+            return "{0}:{1} - {2} - {3}".format(match["file"], match["line"], match["scope"], match["instance"])
         elif command_mode == 1:
             return "{0}:{1} - {2}".format(match["file"], match["line"], match["instance"])
         elif command_mode == 2 or command_mode == 3:
@@ -228,9 +228,10 @@ class CscopeCommand(sublime_plugin.TextCommand):
 
         # set up RegEx for matching cscope results
         if mode == 0:
-            match = re.match('(\S+?)\s+?(<global>)?\s+(\d+)\s+(.+)', line)
+            match = re.match('(\S+?)\s+?(<global>|\S+)?\s+(\d+)\s+(.+)', line)
             if match:
                 output = {  "file": match.group(1),
+                            "scope": match.group(2),
                             "line": match.group(3),
                             "instance": match.group(4)
                             }
