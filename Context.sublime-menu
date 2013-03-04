@@ -1,13 +1,15 @@
 [
-	{ "caption": "-", "id": "cscope" },
+	{ 
+		"caption": "-", "id": "cscope" 
+	},
 	{
 		"caption": "Cscope: Look up symbol",
 		"command": "cscope",
 		"args": {"mode": 0}
 	},
-    {
-        "caption": "Cscope: Look up function definition",
-        "command": "cscope",
+  {
+    "caption": "Cscope: Look up function definition",
+	  "command": "cscope",
 		"args": {"mode": 1}
-    }
+  }
 ]
