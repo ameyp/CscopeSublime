@@ -5,11 +5,11 @@ import subprocess
 import string
 
 MY_PLUGIN_DIR = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
-SYNTAX_FILE = "Packages/" + MY_PLUGIN_DIR + "/Lookup Results.hidden-tmLanguage"
+MY_SYNTAX_FILE = "Packages/" + MY_PLUGIN_DIR + "/Lookup Results.hidden-tmLanguage"
 
 class CscopeVisiter(sublime_plugin.EventListener):
     def on_selection_modified(self, view):
-        if view.settings().get('syntax') == SYNTAX_FILE:
+        if view.settings().get('syntax') == MY_SYNTAX_FILE:
             root_re = re.compile(r'In folder (.+)')
             filepath_re = re.compile(r'(.+):[0-9]+ - ')
             filename_re = re.compile(r'([a-zA-Z0-9_\-\.]+):([0-9]+) - ')
@@ -158,7 +158,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
             cscope_view.insert(cscope_edit, 0, "In folder " + self.root + "\n\n" + "\n".join(options))
             cscope_view.end_edit(cscope_edit)
 
-            cscope_view.set_syntax_file(SYNTAX_FILE)
+            cscope_view.set_syntax_file(MY_SYNTAX_FILE)
 
             cscope_view.set_read_only(True)
             # self.view.window().show_quick_panel(options, self.on_done)
