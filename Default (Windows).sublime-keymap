@@ -9,6 +9,43 @@
     	}
     },
     {
+        // Lookup symbol
+        "keys": ["ctrl+l", "ctrl+s"],
+        "command": "cscope",
+        "args":
+        {
+            "mode": 0
+        }
+
+    },
+    {
+        // Lookup definition
+        "keys": ["ctrl+l", "ctrl+d"],
+        "command": "cscope",
+        "args":
+        {
+            "mode": 1
+        }
+    },
+    {
+        // Lookup CalleEs
+        "keys": ["ctrl+l", "ctrl+e"],
+        "command": "cscope",
+        "args":
+        {
+            "mode": 2
+        }
+    },
+    {
+        // Lookup CalleRs
+        "keys": ["ctrl+l", "ctrl+r"],
+        "command": "cscope",
+        "args":
+        {
+            "mode": 3
+        }
+    },
+    {
 	"keys": ["ctrl+shift+["],
     	"command": "goback"
     },
