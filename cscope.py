@@ -6,7 +6,7 @@ import string
 
 class CscopeVisiter(sublime_plugin.EventListener):
     def on_selection_modified(self, view):
-        if view.settings().get('syntax') == "Packages/CscopeSublime/Lookup Results.hidden-tmLanguage":
+        if view.settings().get('syntax') == "Packages/Cscope/Lookup Results.hidden-tmLanguage":
             root_re = re.compile(r'In folder (.+)')
             filepath_re = re.compile(r'(.+):[0-9]+ - ')
             filename_re = re.compile(r'([a-zA-Z0-9_\-\.]+):([0-9]+) - ')
@@ -155,7 +155,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
             cscope_view.insert(cscope_edit, 0, "In folder " + self.root + "\n\n" + "\n".join(options))
             cscope_view.end_edit(cscope_edit)
 
-            cscope_view.set_syntax_file("Packages/CscopeSublime/Lookup Results.hidden-tmLanguage")
+            cscope_view.set_syntax_file("Packages/Cscope/Lookup Results.hidden-tmLanguage")
 
             cscope_view.set_read_only(True)
             # self.view.window().show_quick_panel(options, self.on_done)
