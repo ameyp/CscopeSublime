@@ -1,0 +1,13 @@
+[
+	// Double-click to go to results
+	{
+		"button": "button1",
+		"count": 2,
+		"press_command": "drag_select",
+		"command": "cscope_visiter",
+		"context":
+		[
+		{"key": "selector", "operator": "equal", "operand": "text.find-in-files"}
+		]
+	}
+]

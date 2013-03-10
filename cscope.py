@@ -7,22 +7,25 @@ import string
 CSCOPE_PLUGIN_DIR = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
 CSCOPE_SYNTAX_FILE = "Packages/" + CSCOPE_PLUGIN_DIR + "/Lookup Results.hidden-tmLanguage"
 
-class CscopeVisiter(sublime_plugin.EventListener):
-    def on_selection_modified(self, view):
-        if view.settings().get('syntax') == CSCOPE_SYNTAX_FILE:
+class CscopeVisiter(sublime_plugin.TextCommand):
+    def __init__(self,view):
+        self.view = view
+
+    def run(self, edit):
+        if self.view.settings().get('syntax') == CSCOPE_SYNTAX_FILE:
             root_re = re.compile(r'In folder (.+)')
             filepath_re = re.compile(r'(.+):[0-9]+ - ')
             filename_re = re.compile(r'([a-zA-Z0-9_\-\.]+):([0-9]+) - ')
 
-            m = root_re.search(view.substr(view.line(0)))
+            m = root_re.search(self.view.substr(self.view.line(0)))
             if m:
                 root = m.group(1)
-                for region in view.sel():
+                for region in self.view.sel():
                     # Find anything looking like file in whole line at cursor
                     if not region.empty():
                         break
 
-                    whole_line = view.substr(view.line(region))
+                    whole_line = self.view.substr(self.view.line(region))
                     m = filepath_re.search(whole_line)
                     if m:
                         filepath = os.path.join(root, m.group(1))
@@ -40,7 +43,7 @@ class CscopeVisiter(sublime_plugin.EventListener):
                         else:
                             print "Unable to open file: %s" % (filepath)
             else:
-                print "Unable to determine root for: %s" % (view.substr(view.line(0)))
+                print "Unable to determine root for: %s" % (self.view.substr(self.view.line(0)))
 
 class GobackCommand(sublime_plugin.TextCommand):
     def __init__(self,view):

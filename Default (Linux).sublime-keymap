@@ -15,5 +15,10 @@
     {
 	"keys": ["ctrl+shift+]"],
     	"command": "forward"
+    },
+    {
+    "keys": ["enter"],
+        "command": "cscope_visiter",
+        "context": [{"key": "selector", "operand": "text.find-in-files"}]
     }
 ]
