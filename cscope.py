@@ -4,9 +4,12 @@ import re
 import subprocess
 import string
 
+MY_PLUGIN_DIR = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
+SYNTAX_FILE = "Packages/" + MY_PLUGIN_DIR + "/Lookup Results.hidden-tmLanguage"
+
 class CscopeVisiter(sublime_plugin.EventListener):
     def on_selection_modified(self, view):
-        if view.settings().get('syntax') == "Packages/CscopeSublime/Lookup Results.hidden-tmLanguage":
+        if view.settings().get('syntax') == SYNTAX_FILE:
             root_re = re.compile(r'In folder (.+)')
             filepath_re = re.compile(r'(.+):[0-9]+ - ')
             filename_re = re.compile(r'([a-zA-Z0-9_\-\.]+):([0-9]+) - ')
@@ -42,7 +45,7 @@ class CscopeVisiter(sublime_plugin.EventListener):
 class GobackCommand(sublime_plugin.TextCommand):
     def __init__(self,view):
         self.view = view
-    
+
     def run(self, edit):
         if not CscopeCommand.is_history_empty():
             file_name = CscopeCommand.pop_latest_from_history()
@@ -55,7 +58,7 @@ class GobackCommand(sublime_plugin.TextCommand):
 class ForwardCommand(sublime_plugin.TextCommand):
     def __init__(self,view):
         self.view = view
-    
+
     def run(self, edit):
         if not CscopeCommand.is_future_empty():
             file_name = CscopeCommand.pop_latest_from_future()
@@ -70,7 +73,7 @@ def getEncodedPosition(file_name, line_num):
 
 def getCurrentPosition(view):
     return getEncodedPosition( view.file_name(), view.rowcol( view.sel()[0].a )[0] + 1 )
-    
+
 class CscopeCommand(sublime_plugin.TextCommand):
     _backLines = []
     _forwardLines = []
@@ -155,7 +158,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
             cscope_view.insert(cscope_edit, 0, "In folder " + self.root + "\n\n" + "\n".join(options))
             cscope_view.end_edit(cscope_edit)
 
-            cscope_view.set_syntax_file("Packages/CscopeSublime/Lookup Results.hidden-tmLanguage")
+            cscope_view.set_syntax_file(SYNTAX_FILE)
 
             cscope_view.set_read_only(True)
             # self.view.window().show_quick_panel(options, self.on_done)
