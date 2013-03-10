@@ -46,6 +46,12 @@
         }
     },
     {
+        // Navigate to results with enter key
+        "keys": ["enter"],
+        "command": "cscope_visiter",
+        "context": [{"key": "selector", "operand": "text.find-in-files"}]
+    },
+    {
 	"keys": ["ctrl+shift+["],
     	"command": "goback"
     },
