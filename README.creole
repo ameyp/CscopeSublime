@@ -11,11 +11,13 @@ A plugin to use Cscope for code navigation from inside Sublime Text 2.
 3. Check out the repo under your "Packages" directory or install via [[http://wbond.net/sublime_packages/package_control|Package Control]] and restart Sublime Text.
 
 == Keybindings ==
-        |ctrl/super+\| Show Cscope options|
+        |(ctrl/super)+\| Show Cscope options|
         |ctrl+l,ctrl+s| Look up symbol under cursor|
         |ctrl+l,ctrl+d| Look up definition under cursor|
         |ctrl+l,ctrl+e| Look up the function under cursor callees|
         |ctrl+l,ctrl+r| Look up the function under cursor callers|
+        |ctrl+shift+[| jump back|
+        |ctrl+shift+]| jump forward|
 
 == Notes ==
 Only global symbol lookup and jump to function definition work at the moment. Default keybinding is Ctrl/Super+\. Rewinding to the previous position in the stack with Ctrl+t hasn't been added yet. The plugin will recursively search for the cscope database in parent directories of the currently open file until it either finds the database or reaches the root directory.
