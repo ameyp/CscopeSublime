@@ -236,26 +236,29 @@ class CscopeCommand(sublime_plugin.TextCommand):
         if mode == 0:
             match = re.match('(\S+?)\s+?(<global>|\S+)?\s+(\d+)\s+(.+)', line)
             if match:
-                output = {  "file": match.group(1),
+                output = {
+                            "file": match.group(1),
                             "scope": match.group(2),
                             "line": match.group(3),
                             "instance": match.group(4)
-                            }
+                         }
         elif mode == 1:
             match = re.match('(\S+?)\s+?\S+\s+(\d+)\s+(.+)', line)
             if match:
-                output = {  "file": match.group(1),
+                output = {
+                            "file": match.group(1),
                             "line": match.group(2),
                             "instance": match.group(3)
-                            }
+                         }
         elif mode == 2 or mode == 3:
             # [path] [function] [line #] [string]
             match = re.match('(\S+)\s+?(\S+)\s+(\d+)\s+(.+)', line)
             if match:
-                output = {  "file": match.group(1),
+                output = {
+                            "file": match.group(1),
                             "function": match.group(2),
                             "line": match.group(3),
                             "instance": match.group(4)
-                            }
+                         }
 
         return output
