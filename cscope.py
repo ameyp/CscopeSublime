@@ -11,11 +11,12 @@ class CscopeVisiter(sublime_plugin.TextCommand):
     def __init__(self,view):
         self.view = view
 
-    def run(self, edit):
+    def run_(self, args):
         if self.view.settings().get('syntax') == CSCOPE_SYNTAX_FILE:
             root_re = re.compile(r'In folder (.+)')
-            filepath_re = re.compile(r'(.+):[0-9]+ - ')
-            filename_re = re.compile(r'([a-zA-Z0-9_\-\.]+):([0-9]+) - ')
+            filepath_re = re.compile(r'^([\./].+):$')
+            filename_re = re.compile(r'([a-zA-Z0-9_\-\.]+):')
+            line_num_re = re.compile(r'([0-9]+)')
 
             m = root_re.search(self.view.substr(self.view.line(0)))
             if m:
@@ -25,25 +26,35 @@ class CscopeVisiter(sublime_plugin.TextCommand):
                     if not region.empty():
                         break
 
-                    whole_line = self.view.substr(self.view.line(region))
-                    m = filepath_re.search(whole_line)
+                    match_line = self.view.substr(self.view.line(region))
+                    
+                    m = line_num_re.search(match_line)
                     if m:
-                        filepath = os.path.join(root, m.group(1))
-                        if ( os.path.isfile(filepath) ):
-                            m = filename_re.search(whole_line)
-                            if m:
-                                filename = m.group(1)
-                                lineno = m.group(2)
-                                print "Opening file '%s'" % (filepath + ":" + lineno)
-                                CscopeCommand.add_to_history( getEncodedPosition(filepath, lineno) )
-                                sublime.active_window().open_file(filepath + ":" + lineno, sublime.ENCODED_POSITION)
-                            else:
-                                print "Something went wrong."
+                        lineno = m.group(1)
+                        file_line = self.view.substr(self.view.line(sublime.Region(self.view.line(region).begin() - 1, self.view.line(region).begin() - 1)))
+                        m = filepath_re.search(file_line)
+
+                        if m:
+                            filepath = os.path.join(root, m.group(1))
+                            if ( os.path.isfile(filepath) ):
+                                m = filename_re.search(file_line)
+                                if m:
+                                    filename = m.group(1)
+                                    print "Opening file '%s'" % (filepath + ":" + lineno)
+                                    CscopeCommand.add_to_history( getEncodedPosition(filepath, lineno) )
+                                    sublime.active_window().open_file(filepath + ":" + lineno, sublime.ENCODED_POSITION)
+                                else:
+                                    print "Something went wrong."
                                 # print os.listdir(root)
                         else:
                             print "Unable to open file: %s" % (filepath)
+                    else:
+                        print "Unable to match filepath"
             else:
                 print "Unable to determine root for: %s" % (self.view.substr(self.view.line(0)))
+        else:
+            self.view.run_command("drag_select", {'event': args['event']})
+            self.view.run_command("drag_select", args)
 
 class GobackCommand(sublime_plugin.TextCommand):
     def __init__(self,view):
@@ -80,6 +91,15 @@ def getCurrentPosition(view):
 class CscopeCommand(sublime_plugin.TextCommand):
     _backLines = []
     _forwardLines = []
+    _modes = {
+        0: "C symbol",
+        1: "Global definition",
+        2: "Functions called by this function",
+        3: "Functions calling this function",
+        4: "Text string",
+        5: "egrep pattern",
+        6: "Files #including this file"
+    }
 
     @staticmethod
     def is_history_empty():
@@ -155,10 +175,13 @@ class CscopeCommand(sublime_plugin.TextCommand):
             options = self.run_cscope(mode, word)
             cscope_view = self.view.window().new_file()
             cscope_view.set_scratch(True)
-            cscope_view.set_name(word)
+            cscope_view.set_name("Cscope results - " + word)
 
             cscope_edit = cscope_view.begin_edit()
-            cscope_view.insert(cscope_edit, 0, "In folder " + self.root + "\n\n" + "\n".join(options))
+            cscope_view.insert(cscope_edit, 0,
+                "In folder " + self.root +
+                "\nFound " + str(len(options)) + " matches for " + CscopeCommand._modes[mode] + ": " + word +
+                "\n" + 20*"-" + "\n\n" + "\n\n".join(options))
             cscope_view.end_edit(cscope_edit)
 
             cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
@@ -172,11 +195,11 @@ class CscopeCommand(sublime_plugin.TextCommand):
     def _append_match_string(self, match, command_mode):
         default = "{0}".format(match["file"])
         if command_mode == 0:
-            return "{0}:{1} - {2} - {3}".format(match["file"].replace(self.root, "."), match["line"], match["scope"], match["instance"])
+            return ("{0}:\n{1} {2} {3}").format(match["file"].replace(self.root, "."), match["line"], match["scope"], match["instance"])
         elif command_mode == 1:
-            return "{0}:{1} - {2}".format(match["file"].replace(self.root, "."), match["line"], match["instance"])
+            return ("{0}:\n{1} {2}").format(match["file"].replace(self.root, "."), match["line"], match["instance"])
         elif command_mode == 2 or command_mode == 3:
-            return "{0}:{1} - {2} - {3}".format(match["file"].replace(self.root, "."), match["line"], match["function"], match["instance"])
+            return ("{0}:\n{1} {2} {3}").format(match["file"].replace(self.root, "."), match["line"], match["function"], match["instance"])
         else:
             return default
 
@@ -204,10 +227,10 @@ class CscopeCommand(sublime_plugin.TextCommand):
         # print 'cscope -dL -f {0} -{1} {2}'.format(self.database, str(mode), word)
         cscope_arg_list = ['cscope', '-dL', '-f', self.database, '-' + str(mode) + word]
         popen_arg_list = {
-                          "shell": False,
-                          "stdout": subprocess.PIPE,
-                          "stderr": subprocess.PIPE
-                          }
+            "shell": False,
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.PIPE
+        }
         if (sublime.platform() == "windows"):
             popen_arg_list["creationflags"] = 0x08000000
 
@@ -237,28 +260,28 @@ class CscopeCommand(sublime_plugin.TextCommand):
             match = re.match('(\S+?)\s+?(<global>|\S+)?\s+(\d+)\s+(.+)', line)
             if match:
                 output = {
-                            "file": match.group(1),
-                            "scope": match.group(2),
-                            "line": match.group(3),
-                            "instance": match.group(4)
-                         }
+                    "file": match.group(1),
+                    "scope": match.group(2),
+                    "line": match.group(3),
+                    "instance": match.group(4)
+                }
         elif mode == 1:
             match = re.match('(\S+?)\s+?\S+\s+(\d+)\s+(.+)', line)
             if match:
                 output = {
-                            "file": match.group(1),
-                            "line": match.group(2),
-                            "instance": match.group(3)
-                         }
+                    "file": match.group(1),
+                    "line": match.group(2),
+                    "instance": match.group(3)
+                }
         elif mode == 2 or mode == 3:
             # [path] [function] [line #] [string]
             match = re.match('(\S+)\s+?(\S+)\s+(\d+)\s+(.+)', line)
             if match:
                 output = {
-                            "file": match.group(1),
-                            "function": match.group(2),
-                            "line": match.group(3),
-                            "instance": match.group(4)
-                         }
+                    "file": match.group(1),
+                    "function": match.group(2),
+                    "line": match.group(3),
+                    "instance": match.group(4)
+                }
 
         return output

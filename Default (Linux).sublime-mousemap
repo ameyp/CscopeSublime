@@ -3,8 +3,8 @@
 	{
 		"button": "button1",
 		"count": 2,
-		"press_command": "drag_select",
-		"command": "cscope_visiter",
+		"press_command": "cscope_visiter",
+		"press_args": {"by": "words"},
 		"context": [{"key": "selector", "operand": "text.find-in-files"}]
 	}
 ]

@@ -9,7 +9,7 @@
 	<array>
 		<dict>
 			<key>match</key>
-			<string>(.*):([0-9]+) - </string>
+			<string>(.*):$</string>
 			<key>captures</key>
 			<dict>
 				<key>1</key>
@@ -17,10 +17,22 @@
 					<key>name</key>
 					<string>entity.name.filename.find-in-files</string>
 				</dict>
-				<key>2</key>
+			</dict>
+		</dict>
+		<dict>
+			<key>match</key>
+			<string>^([0-9]+)\s+(.global.)?</string>
+			<key>captures</key>
+			<dict>
+				<key>1</key>
 				<dict>
 					<key>name</key>
 					<string>constant.numeric.line-number.find-in-files</string>
+				</dict>
+				<key>2</key>
+				<dict>
+					<key>name</key>
+					<string>keyword</string>
 				</dict>
 			</dict>
 		</dict>
