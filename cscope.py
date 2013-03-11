@@ -31,8 +31,16 @@ class CscopeVisiter(sublime_plugin.TextCommand):
                     m = line_num_re.search(match_line)
                     if m:
                         lineno = m.group(1)
-                        file_line = self.view.substr(self.view.line(sublime.Region(self.view.line(region).begin() - 1, self.view.line(region).begin() - 1)))
+                        line_beg = self.view.line(region).begin()
+                        prev_line_bounds = self.view.line(sublime.Region(line_beg - 1, line_beg - 1))
+                        file_line = self.view.substr(prev_line_bounds)
                         m = filepath_re.search(file_line)
+
+                        while m == None:
+                            line_beg = prev_line_bounds.begin()
+                            prev_line_bounds = self.view.line(sublime.Region(line_beg - 1, line_beg - 1))
+                            file_line = self.view.substr(prev_line_bounds)
+                            m = filepath_re.search(file_line)
 
                         if m:
                             filepath = os.path.join(root, m.group(1))
@@ -183,7 +191,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
             cscope_view.insert(cscope_edit, 0,
                 "In folder " + self.root +
                 "\nFound " + str(len(options)) + " matches for " + CscopeCommand._modes[mode] + ": " + word +
-                "\n" + 50*"-" + "\n\n" + "\n\n".join(options))
+                "\n" + 50*"-" + "\n\n" + "\n".join(options))
             cscope_view.end_edit(cscope_edit)
 
             cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
@@ -194,16 +202,25 @@ class CscopeCommand(sublime_plugin.TextCommand):
 
     # switch statement for the different formatted output
     # of Cscope's matches.
-    def _append_match_string(self, match, command_mode):
-        default = "{0}".format(match["file"])
+    def _append_match_string(self, match, command_mode, nested):
+        match_string = "{0}".format(match["file"])
         if command_mode == 0:
-            return ("{0}:\n{1:>6} {2} {3}").format(match["file"].replace(self.root, "."), match["line"], match["scope"], match["instance"])
+            if nested:
+                match_string = ("{0:>6} {1} {2}").format(match["line"], match["scope"], match["instance"])
+            else:
+                match_string = ("\n{0}:\n{1:>6} {2} {3}").format(match["file"].replace(self.root, "."), match["line"], match["scope"], match["instance"])
         elif command_mode == 1:
-            return ("{0}:\n{1:>6} {2}").format(match["file"].replace(self.root, "."), match["line"], match["instance"])
+            if nested:
+                match_string = ("{0:>6} {1}").format(match["line"], match["instance"])
+            else:
+                match_string = ("\n{0}:\n{1:>6} {2}").format(match["file"].replace(self.root, "."), match["line"], match["instance"])
         elif command_mode == 2 or command_mode == 3:
-            return ("{0}:\n{1:>6} {2} {3}").format(match["file"].replace(self.root, "."), match["line"], match["function"], match["instance"])
-        else:
-            return default
+            if nested:
+                match_string = ("{0:>6} {1} {2}").format(match["line"], match["function"], match["instance"])
+            else:
+                match_string = ("\n{0}:\n{1:>6} {2} {3}").format(match["file"].replace(self.root, "."), match["line"], match["function"], match["instance"])
+
+        return match_string
 
     def run_cscope(self, mode, word):
         # 0 ==> C symbol
@@ -248,8 +265,10 @@ class CscopeCommand(sublime_plugin.TextCommand):
 
         # self.view.window().run_command("show_overlay", {"overlay": "goto", "text": "@"})
         options = []
+        prev_file = ""
         for match in self.matches:
-            options.append(self._append_match_string(match, mode))
+            options.append(self._append_match_string(match, mode, prev_file == match["file"]))
+            prev_file = match["file"]
 
         return options
 
