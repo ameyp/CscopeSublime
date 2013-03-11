@@ -14,9 +14,9 @@ class CscopeVisiter(sublime_plugin.TextCommand):
     def run_(self, args):
         if self.view.settings().get('syntax') == CSCOPE_SYNTAX_FILE:
             root_re = re.compile(r'In folder (.+)')
-            filepath_re = re.compile(r'^([\./].+):$')
+            filepath_re = re.compile(r'^(.+):$')
             filename_re = re.compile(r'([a-zA-Z0-9_\-\.]+):')
-            line_num_re = re.compile(r'([0-9]+)')
+            line_num_re = re.compile(r'^\s*([0-9]+)')
 
             m = root_re.search(self.view.substr(self.view.line(0)))
             if m:
@@ -46,10 +46,12 @@ class CscopeVisiter(sublime_plugin.TextCommand):
                                 else:
                                     print "Something went wrong."
                                 # print os.listdir(root)
+                            else:
+                                print "Unable to open file: %s" % (filepath)
                         else:
-                            print "Unable to open file: %s" % (filepath)
+                            print "Unable to match filepath in " + file_line
                     else:
-                        print "Unable to match filepath"
+                        print "Unable to match line number in " + match_line
             else:
                 print "Unable to determine root for: %s" % (self.view.substr(self.view.line(0)))
         else:
@@ -181,7 +183,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
             cscope_view.insert(cscope_edit, 0,
                 "In folder " + self.root +
                 "\nFound " + str(len(options)) + " matches for " + CscopeCommand._modes[mode] + ": " + word +
-                "\n" + 20*"-" + "\n\n" + "\n\n".join(options))
+                "\n" + 50*"-" + "\n\n" + "\n\n".join(options))
             cscope_view.end_edit(cscope_edit)
 
             cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
@@ -195,11 +197,11 @@ class CscopeCommand(sublime_plugin.TextCommand):
     def _append_match_string(self, match, command_mode):
         default = "{0}".format(match["file"])
         if command_mode == 0:
-            return ("{0}:\n{1} {2} {3}").format(match["file"].replace(self.root, "."), match["line"], match["scope"], match["instance"])
+            return ("{0}:\n{1:>6} {2} {3}").format(match["file"].replace(self.root, "."), match["line"], match["scope"], match["instance"])
         elif command_mode == 1:
-            return ("{0}:\n{1} {2}").format(match["file"].replace(self.root, "."), match["line"], match["instance"])
+            return ("{0}:\n{1:>6} {2}").format(match["file"].replace(self.root, "."), match["line"], match["instance"])
         elif command_mode == 2 or command_mode == 3:
-            return ("{0}:\n{1} {2} {3}").format(match["file"].replace(self.root, "."), match["line"], match["function"], match["instance"])
+            return ("{0}:\n{1:>6} {2} {3}").format(match["file"].replace(self.root, "."), match["line"], match["function"], match["instance"])
         else:
             return default
 
