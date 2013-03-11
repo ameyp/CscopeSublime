@@ -21,7 +21,7 @@
 		</dict>
 		<dict>
 			<key>match</key>
-			<string>^\s*([0-9]+)\s+(.global.)?</string>
+			<string>^\s*([0-9]+)\s+(\[\S+: \S+\])</string>
 			<key>captures</key>
 			<dict>
 				<key>1</key>

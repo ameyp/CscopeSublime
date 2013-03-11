@@ -221,12 +221,13 @@ class CscopeCommand(sublime_plugin.TextCommand):
     # switch statement for the different formatted output
     # of Cscope's matches.
     def _append_match_string(self, match, command_mode, nested):
+        print match
         match_string = "{0}".format(match["file"])
         if command_mode == 0:
             if nested:
-                match_string = ("{0:>6}\n{1:>6} {2} {3}").format("..", match["line"], match["scope"], match["instance"])
+                match_string = ("{0:>6}\n{1:>6} [scope: {2}] {3}").format("..", match["line"], match["scope"], match["instance"])
             else:
-                match_string = ("\n{0}:\n{1:>6} {2} {3}").format(match["file"].replace(self.root, "."), match["line"], match["scope"], match["instance"])
+                match_string = ("\n{0}:\n{1:>6} [scope: {2}] {3}").format(match["file"].replace(self.root, "."), match["line"], match["scope"], match["instance"])
         elif command_mode == 1:
             if nested:
                 match_string = ("{0:>6}\n{1:>6} {2}").format("..", match["line"], match["instance"])
@@ -234,9 +235,9 @@ class CscopeCommand(sublime_plugin.TextCommand):
                 match_string = ("\n{0}:\n{1:>6} {2}").format(match["file"].replace(self.root, "."), match["line"], match["instance"])
         elif command_mode == 2 or command_mode == 3:
             if nested:
-                match_string = ("{0:>6}\n{1:>6} {2} {3}").format("..", match["line"], match["function"], match["instance"])
+                match_string = ("{0:>6}\n{1:>6} [function: {2}] {3}").format("..", match["line"], match["function"], match["instance"])
             else:
-                match_string = ("\n{0}:\n{1:>6} {2} {3}").format(match["file"].replace(self.root, "."), match["line"], match["function"], match["instance"])
+                match_string = ("\n{0}:\n{1:>6} [function: {2}] {3}").format(match["file"].replace(self.root, "."), match["line"], match["function"], match["instance"])
 
         return match_string
 
