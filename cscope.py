@@ -14,13 +14,16 @@ class CscopeVisiter(sublime_plugin.TextCommand):
     def run_(self, args):
         if self.view.settings().get('syntax') == CSCOPE_SYNTAX_FILE:
             root_re = re.compile(r'In folder (.+)')
+            word_re = re.compile(r'^Found.*: (.*)')
             filepath_re = re.compile(r'^(.+):$')
             filename_re = re.compile(r'([a-zA-Z0-9_\-\.]+):')
             line_num_re = re.compile(r'^\s*([0-9]+)')
 
-            m = root_re.search(self.view.substr(self.view.line(0)))
-            if m:
-                root = m.group(1)
+            m1 = root_re.search(self.view.substr(self.view.line(0)))
+            m2 = word_re.search(self.view.substr(self.view.line(self.view.line(0).end() + 1)))
+            if m1 and m2:
+                root = m1.group(1)
+                word = m2.group(1)
                 for region in self.view.sel():
                     # Find anything looking like file in whole line at cursor
                     if not region.empty():
