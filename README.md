@@ -10,6 +10,10 @@ A plugin to use Cscope for code navigation from inside Sublime Text 2.
 2. Generate a cscope database (cscope.out) in the root directory of your project
 3. Check out the repo under your "Packages" directory or install via [Package Control](http://wbond.net/sublime_packages/package_control) and restart Sublime Text.
 
+## Screenshots
+Here's what the symbol lookup results buffer looks like:
+![find-results-new-3](https://f.cloud.github.com/assets/83116/243889/94dd1c70-8a56-11e2-9c4b-3fc0b2beb36a.png)
+
 ## Configuration
 If you wish to change the way CscopeSublime behaves, you have two options:
 
