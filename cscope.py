@@ -181,6 +181,9 @@ class CscopeCommand(sublime_plugin.TextCommand):
                 # print "Database found: ", self.database
                 break
             cdir = os.path.dirname(cdir)
+        if get_setting("cscope_database_location") != "":
+            self.root = cdir
+            self.database = get_setting("cscope_database_location")
 
     def run(self, edit, mode):
         # self.word_separators = self.view.settings().get('word_separators')
