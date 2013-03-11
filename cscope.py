@@ -7,6 +7,20 @@ import string
 CSCOPE_PLUGIN_DIR = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
 CSCOPE_SYNTAX_FILE = "Packages/" + CSCOPE_PLUGIN_DIR + "/Lookup Results.hidden-tmLanguage"
 
+def get_settings():
+    return sublime.load_settings("CscopeSublime.sublime-settings")
+
+def get_setting(key, default=None, view=None):
+    try:
+        if view == None:
+            view = sublime.active_window().active_view()
+        s = view.settings()
+        if s.has("CscopeSublime_%s" % key):
+            return s.get("CscopeSublime_%s" % key)
+    except:
+        pass
+    return get_settings().get(key, default)
+
 class CscopeVisiter(sublime_plugin.TextCommand):
     def __init__(self,view):
         self.view = view
@@ -14,16 +28,13 @@ class CscopeVisiter(sublime_plugin.TextCommand):
     def run_(self, args):
         if self.view.settings().get('syntax') == CSCOPE_SYNTAX_FILE:
             root_re = re.compile(r'In folder (.+)')
-            word_re = re.compile(r'^Found.*: (.*)')
             filepath_re = re.compile(r'^(.+):$')
             filename_re = re.compile(r'([a-zA-Z0-9_\-\.]+):')
             line_num_re = re.compile(r'^\s*([0-9]+)')
 
-            m1 = root_re.search(self.view.substr(self.view.line(0)))
-            m2 = word_re.search(self.view.substr(self.view.line(self.view.line(0).end() + 1)))
-            if m1 and m2:
-                root = m1.group(1)
-                word = m2.group(1)
+            m = root_re.search(self.view.substr(self.view.line(0)))
+            if m:
+                root = m.group(1)
                 for region in self.view.sel():
                     # Find anything looking like file in whole line at cursor
                     if not region.empty():
@@ -159,7 +170,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
     def __init__(self, view):
         self.view = view
         self.database = None
-        # self.panel  = self.view.window().get_output_panel("cscope")
+        settings = get_settings()
 
     def update_database(self, filename):
         cdir = os.path.dirname(filename)
@@ -195,10 +206,14 @@ class CscopeCommand(sublime_plugin.TextCommand):
                 "In folder " + self.root +
                 "\nFound " + str(len(options)) + " matches for " + CscopeCommand._modes[mode] + ": " + word +
                 "\n" + 50*"-" + "\n\n" + "\n".join(options))
+
+            if get_setting("display_outline") == True:
+                word_regions = cscope_view.find_all(word, sublime.LITERAL)
+                cscope_view.add_regions('cscopesublime-outlines', word_regions[1:], "text.find-in-files", "", sublime.DRAW_OUTLINED)
+            
             cscope_view.end_edit(cscope_edit)
 
             cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
-
             cscope_view.set_read_only(True)
             # self.view.window().show_quick_panel(options, self.on_done)
             # self.view.window().run_command("show_panel", {"panel": "output." + "cscope"})
@@ -209,17 +224,17 @@ class CscopeCommand(sublime_plugin.TextCommand):
         match_string = "{0}".format(match["file"])
         if command_mode == 0:
             if nested:
-                match_string = ("{0:>6} {1} {2}").format(match["line"], match["scope"], match["instance"])
+                match_string = ("{0:>6}\n{1:>6} {2} {3}").format("..", match["line"], match["scope"], match["instance"])
             else:
                 match_string = ("\n{0}:\n{1:>6} {2} {3}").format(match["file"].replace(self.root, "."), match["line"], match["scope"], match["instance"])
         elif command_mode == 1:
             if nested:
-                match_string = ("{0:>6} {1}").format(match["line"], match["instance"])
+                match_string = ("{0:>6}\n{1:>6} {2}").format("..", match["line"], match["instance"])
             else:
                 match_string = ("\n{0}:\n{1:>6} {2}").format(match["file"].replace(self.root, "."), match["line"], match["instance"])
         elif command_mode == 2 or command_mode == 3:
             if nested:
-                match_string = ("{0:>6} {1} {2}").format(match["line"], match["function"], match["instance"])
+                match_string = ("{0:>6}\n{1:>6} {2} {3}").format("..", match["line"], match["function"], match["instance"])
             else:
                 match_string = ("\n{0}:\n{1:>6} {2} {3}").format(match["file"].replace(self.root, "."), match["line"], match["function"], match["instance"])
 
