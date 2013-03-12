@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 import string
+import threading
 
 CSCOPE_PLUGIN_DIR = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
 CSCOPE_SYNTAX_FILE = "Packages/" + CSCOPE_PLUGIN_DIR + "/Lookup Results.hidden-tmLanguage"
@@ -190,6 +191,28 @@ class CscopeCommand(sublime_plugin.TextCommand):
                     break
                 cdir = os.path.dirname(cdir)
 
+    def fetch_and_display_results(self, symbol, mode):
+        matches = self.run_cscope(mode, symbol)
+        cscope_view = self.view.window().new_file()
+        cscope_view.set_scratch(True)
+        cscope_view.set_name("Cscope results - " + symbol)
+
+        cscope_edit = cscope_view.begin_edit()
+        cscope_view.insert(cscope_edit, 0,
+            "In folder " + self.root +
+            "\nFound " + str(len(matches)) + " matches for " + CscopeCommand._modes[mode] + ": " + symbol +
+            "\n" + 50*"-" + "\n\n" + "\n".join(matches))
+
+        if get_setting("display_outline") == True:
+            symbol_regions = cscope_view.find_all(symbol, sublime.LITERAL)
+            cscope_view.add_regions('cscopesublime-outlines', symbol_regions[1:], "text.find-in-files", "", sublime.DRAW_OUTLINED)
+        
+        cscope_view.end_edit(cscope_edit)
+
+        cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
+        cscope_view.set_read_only(True)
+        return
+
     def run(self, edit, mode):
         # self.word_separators = self.view.settings().get('word_separators')
         # print self.view.sel()
@@ -202,34 +225,23 @@ class CscopeCommand(sublime_plugin.TextCommand):
         self.view.sel().add(sublime.Region(one,
                                            two))
         for sel in self.view.sel():
-            word = self.view.substr(self.view.word(sel))
-            # print "Word: ", word
-            options = self.run_cscope(mode, word)
-            cscope_view = self.view.window().new_file()
-            cscope_view.set_scratch(True)
-            cscope_view.set_name("Cscope results - " + word)
+            symbol = self.view.substr(self.view.word(sel))
 
-            cscope_edit = cscope_view.begin_edit()
-            cscope_view.insert(cscope_edit, 0,
-                "In folder " + self.root +
-                "\nFound " + str(len(options)) + " matches for " + CscopeCommand._modes[mode] + ": " + word +
-                "\n" + 50*"-" + "\n\n" + "\n".join(options))
-
-            if get_setting("display_outline") == True:
-                word_regions = cscope_view.find_all(word, sublime.LITERAL)
-                cscope_view.add_regions('cscopesublime-outlines', word_regions[1:], "text.find-in-files", "", sublime.DRAW_OUTLINED)
+            t = threading.Thread(
+                    target = self.fetch_and_display_results,
+                    kwargs = {
+                        'symbol': symbol,
+                        'mode': mode
+                    }
+                )
+            t.start()
             
-            cscope_view.end_edit(cscope_edit)
-
-            cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
-            cscope_view.set_read_only(True)
             # self.view.window().show_quick_panel(options, self.on_done)
             # self.view.window().run_command("show_panel", {"panel": "output." + "cscope"})
 
     # switch statement for the different formatted output
     # of Cscope's matches.
     def _append_match_string(self, match, command_mode, nested):
-        print match
         match_string = "{0}".format(match["file"])
         if command_mode == 0:
             if nested:
