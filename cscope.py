@@ -33,49 +33,53 @@ class CscopeVisiter(sublime_plugin.TextCommand):
             line_num_re = re.compile(r'^\s*([0-9]+)')
 
             m = root_re.search(self.view.substr(self.view.line(0)))
-            if m:
-                root = m.group(1)
-                for region in self.view.sel():
-                    # Find anything looking like file in whole line at cursor
-                    if not region.empty():
-                        break
-
-                    match_line = self.view.substr(self.view.line(region))
-                    
-                    m = line_num_re.search(match_line)
-                    if m:
-                        lineno = m.group(1)
-                        line_beg = self.view.line(region).begin()
-                        prev_line_bounds = self.view.line(sublime.Region(line_beg - 1, line_beg - 1))
-                        file_line = self.view.substr(prev_line_bounds)
-                        m = filepath_re.search(file_line)
-
-                        while m == None:
-                            line_beg = prev_line_bounds.begin()
-                            prev_line_bounds = self.view.line(sublime.Region(line_beg - 1, line_beg - 1))
-                            file_line = self.view.substr(prev_line_bounds)
-                            m = filepath_re.search(file_line)
-
-                        if m:
-                            filepath = os.path.join(root, m.group(1))
-                            if ( os.path.isfile(filepath) ):
-                                m = filename_re.search(file_line)
-                                if m:
-                                    filename = m.group(1)
-                                    print "Opening file '%s'" % (filepath + ":" + lineno)
-                                    CscopeCommand.add_to_history( getEncodedPosition(filepath, lineno) )
-                                    sublime.active_window().open_file(filepath + ":" + lineno, sublime.ENCODED_POSITION)
-                                else:
-                                    print "Something went wrong."
-                                # print os.listdir(root)
-                            else:
-                                print "Unable to open file: %s" % (filepath)
-                        else:
-                            print "Unable to match filepath in " + file_line
-                    else:
-                        print "Unable to match line number in " + match_line
-            else:
+            if not m:
                 print "Unable to determine root for: %s" % (self.view.substr(self.view.line(0)))
+                return
+
+            root = m.group(1)
+            for region in self.view.sel():
+                # Find anything looking like file in whole line at cursor
+                if not region.empty():
+                    break
+
+                match_line = self.view.substr(self.view.line(region))
+                
+                m = line_num_re.search(match_line)
+                if not m:
+                    print "Unable to match line number in " + match_line
+                    return
+
+                lineno = m.group(1)
+                line_beg = self.view.line(region).begin()
+                prev_line_bounds = self.view.line(sublime.Region(line_beg - 1, line_beg - 1))
+                file_line = self.view.substr(prev_line_bounds)
+                m = filepath_re.search(file_line)
+
+                while m == None:
+                    line_beg = prev_line_bounds.begin()
+                    prev_line_bounds = self.view.line(sublime.Region(line_beg - 1, line_beg - 1))
+                    file_line = self.view.substr(prev_line_bounds)
+                    m = filepath_re.search(file_line)
+
+                if not m:
+                    print "Unable to match filepath in " + file_line
+                    return
+
+                filepath = os.path.join(root, m.group(1))
+                if not ( os.path.isfile(filepath) ):
+                    print "Unable to open file: %s" % (filepath)
+                    return
+
+                m = filename_re.search(file_line)
+                if not m:
+                    print "Matched filepath, file exists, but unable to match filename in " + file_line
+                    return
+
+                filename = m.group(1)
+                print "Opening file '%s'" % (filepath + ":" + lineno)
+                CscopeCommand.add_to_history( getEncodedPosition(filepath, lineno) )
+                sublime.active_window().open_file(filepath + ":" + lineno, sublime.ENCODED_POSITION)
         else:
             self.view.run_command("drag_select", {'event': args['event']})
             self.view.run_command("drag_select", args)
