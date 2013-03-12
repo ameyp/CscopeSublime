@@ -173,14 +173,18 @@ class CscopeCommand(sublime_plugin.TextCommand):
         settings = get_settings()
 
     def update_database(self, filename):
-        cdir = os.path.dirname(filename)
-        while cdir != os.path.dirname(cdir):
-            if ("cscope.out" in os.listdir(cdir)):
-                self.root = cdir
-                self.database = os.path.join(cdir, "cscope.out")
-                # print "Database found: ", self.database
-                break
-            cdir = os.path.dirname(cdir)
+        if get_setting("database_location") != "":
+            self.database = get_setting("database_location")
+            self.root = os.path.dirname(self.database)
+        else:
+            cdir = os.path.dirname(filename)
+            while cdir != os.path.dirname(cdir):
+                if ("cscope.out" in os.listdir(cdir)):
+                    self.root = cdir
+                    self.database = os.path.join(cdir, "cscope.out")
+                    # print "Database found: ", self.database
+                    break
+                cdir = os.path.dirname(cdir)
 
     def run(self, edit, mode):
         # self.word_separators = self.view.settings().get('word_separators')
