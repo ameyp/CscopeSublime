@@ -137,7 +137,7 @@ class CscopeSublimeWorker(threading.Thread):
         self.symbol = symbol
         self.mode = mode
 
-        # switch statement for the different formatted output
+    # switch statement for the different formatted output
     # of Cscope's matches.
     def append_match_string(self, match, command_mode, nested):
         match_string = "{0}".format(match["file"])
@@ -215,6 +215,7 @@ class CscopeSublimeWorker(threading.Thread):
         proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
         output = proc.communicate()[0].split(newline)
         # print output
+
         self.matches = []
         for i in output:
             match = self.match_output_line(i, mode)
@@ -222,7 +223,6 @@ class CscopeSublimeWorker(threading.Thread):
                 self.matches.append(match)
                 # print "File ", match.group(1), ", Line ", match.group(2), ", Instance ", match.group(3)
 
-        # self.view.window().run_command("show_overlay", {"overlay": "goto", "text": "@"})
         options = []
         prev_file = ""
         for match in self.matches:
@@ -254,6 +254,8 @@ class CscopeSublimeWorker(threading.Thread):
 
         cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
         cscope_view.set_read_only(True)
+
+        sublime.status_message("CscopeSublime: Done")
 
 class CscopeCommand(sublime_plugin.TextCommand):
     _backLines = []
@@ -321,26 +323,23 @@ class CscopeCommand(sublime_plugin.TextCommand):
                 cdir = os.path.dirname(cdir)
 
     def run(self, edit, mode):
-        # self.word_separators = self.view.settings().get('word_separators')
-        # print self.view.sel()
-        # self.view.insert(edit, 0, "Hello, World!")
-        # print mode
         if self.database == None:
             self.update_database(self.view.file_name())
 
             if self.database == None:
-                sublime.status_message("Could not find cscope database: cscope.out")
+                sublime.error_message("Could not find cscope database: cscope.out")
                 return
 
         CscopeCommand.add_to_history( getCurrentPosition(self.view) )
 
         one = self.view.sel()[0].a
         two = self.view.sel()[0].b
-        self.view.sel().add(sublime.Region(one,
-                                           two))
+        
+        self.view.sel().add(sublime.Region(one, two))
+
+        sublime.status_message("CscopeSublime: Fetching lookup results")
         for sel in self.view.sel():
             symbol = self.view.substr(self.view.word(sel))
-
             worker = CscopeSublimeWorker(
                     view = self.view,
                     platform = sublime.platform(),
@@ -350,6 +349,3 @@ class CscopeCommand(sublime_plugin.TextCommand):
                     mode = mode
                 )
             worker.start()
-            
-            # self.view.window().show_quick_panel(options, self.on_done)
-            # self.view.window().run_command("show_panel", {"panel": "output." + "cscope"})
