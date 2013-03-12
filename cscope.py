@@ -117,9 +117,7 @@ def getEncodedPosition(file_name, line_num):
 def getCurrentPosition(view):
     return getEncodedPosition( view.file_name(), view.rowcol( view.sel()[0].a )[0] + 1 )
 
-class CscopeCommand(sublime_plugin.TextCommand):
-    _backLines = []
-    _forwardLines = []
+class CscopeSublimeWorker(threading.Thread):
     _modes = {
         0: "C symbol",
         1: "Global definition",
@@ -129,6 +127,137 @@ class CscopeCommand(sublime_plugin.TextCommand):
         5: "egrep pattern",
         6: "Files #including this file"
     }
+
+    def __init__(self, view, platform, root, database, symbol, mode):
+        super(CscopeSublimeWorker, self).__init__()
+        self.view = view
+        self.platform = platform
+        self.root = root
+        self.database = database
+        self.symbol = symbol
+        self.mode = mode
+
+        # switch statement for the different formatted output
+    # of Cscope's matches.
+    def append_match_string(self, match, command_mode, nested):
+        match_string = "{0}".format(match["file"])
+        if command_mode == 0:
+            if nested:
+                match_string = ("{0:>6}\n{1:>6} [scope: {2}] {3}").format("..", match["line"], match["scope"], match["instance"])
+            else:
+                match_string = ("\n{0}:\n{1:>6} [scope: {2}] {3}").format(match["file"].replace(self.root, "."), match["line"], match["scope"], match["instance"])
+        elif command_mode == 1:
+            if nested:
+                match_string = ("{0:>6}\n{1:>6} {2}").format("..", match["line"], match["instance"])
+            else:
+                match_string = ("\n{0}:\n{1:>6} {2}").format(match["file"].replace(self.root, "."), match["line"], match["instance"])
+        elif command_mode == 2 or command_mode == 3:
+            if nested:
+                match_string = ("{0:>6}\n{1:>6} [function: {2}] {3}").format("..", match["line"], match["function"], match["instance"])
+            else:
+                match_string = ("\n{0}:\n{1:>6} [function: {2}] {3}").format(match["file"].replace(self.root, "."), match["line"], match["function"], match["instance"])
+
+        return match_string
+
+
+    def match_output_line(self, line, mode):
+        match = None
+        output = None
+
+        # set up RegEx for matching cscope results
+        if mode == 0:
+            match = re.match('(\S+?)\s+?(<global>|\S+)?\s+(\d+)\s+(.+)', line)
+            if match:
+                output = {
+                    "file": match.group(1),
+                    "scope": match.group(2),
+                    "line": match.group(3),
+                    "instance": match.group(4)
+                }
+        elif mode == 1:
+            match = re.match('(\S+?)\s+?\S+\s+(\d+)\s+(.+)', line)
+            if match:
+                output = {
+                    "file": match.group(1),
+                    "line": match.group(2),
+                    "instance": match.group(3)
+                }
+        elif mode == 2 or mode == 3:
+            # [path] [function] [line #] [string]
+            match = re.match('(\S+)\s+?(\S+)\s+(\d+)\s+(.+)', line)
+            if match:
+                output = {
+                    "file": match.group(1),
+                    "function": match.group(2),
+                    "line": match.group(3),
+                    "instance": match.group(4)
+                }
+
+        return output
+
+    def run_cscope(self, mode, word):
+        newline = ''
+        if self.platform == "windows":
+            newline = '\r\n'
+        else:
+            newline = '\n'
+
+        # print 'cscope -dL -f {0} -{1} {2}'.format(self.database, str(mode), word)
+        cscope_arg_list = ['cscope', '-dL', '-f', self.database, '-' + str(mode) + word]
+        popen_arg_list = {
+            "shell": False,
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.PIPE
+        }
+        if (self.platform == "windows"):
+            popen_arg_list["creationflags"] = 0x08000000
+
+        proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
+        output = proc.communicate()[0].split(newline)
+        # print output
+        self.matches = []
+        for i in output:
+            match = self.match_output_line(i, mode)
+            if match != None:
+                self.matches.append(match)
+                # print "File ", match.group(1), ", Line ", match.group(2), ", Instance ", match.group(3)
+
+        # self.view.window().run_command("show_overlay", {"overlay": "goto", "text": "@"})
+        options = []
+        prev_file = ""
+        for match in self.matches:
+            options.append(self.append_match_string(match, mode, prev_file == match["file"]))
+            prev_file = match["file"]
+
+        return options
+
+    def run(self):
+        self.matches = self.run_cscope(self.mode, self.symbol)
+        sublime.set_timeout(self.display_results, 0)
+
+    def display_results(self):
+        cscope_view = self.view.window().new_file()
+        cscope_view.set_scratch(True)
+        cscope_view.set_name("Cscope results - " + self.symbol)
+
+        cscope_edit = cscope_view.begin_edit()
+        cscope_view.insert(cscope_edit, 0,
+            "In folder " + self.root +
+            "\nFound " + str(len(self.matches)) + " matches for " + self._modes[self.mode] + ": " + self.symbol +
+            "\n" + 50*"-" + "\n\n" + "\n".join(self.matches))
+
+        if get_setting("display_outline") == True:
+            symbol_regions = cscope_view.find_all(self.symbol, sublime.LITERAL)
+            cscope_view.add_regions('cscopesublime-outlines', symbol_regions[1:], "text.find-in-files", "", sublime.DRAW_OUTLINED)
+        
+        cscope_view.end_edit(cscope_edit)
+
+        cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
+        cscope_view.set_read_only(True)
+
+class CscopeCommand(sublime_plugin.TextCommand):
+    _backLines = []
+    _forwardLines = []
 
     @staticmethod
     def is_history_empty():
@@ -191,33 +320,18 @@ class CscopeCommand(sublime_plugin.TextCommand):
                     break
                 cdir = os.path.dirname(cdir)
 
-    def fetch_and_display_results(self, symbol, mode):
-        matches = self.run_cscope(mode, symbol)
-        cscope_view = self.view.window().new_file()
-        cscope_view.set_scratch(True)
-        cscope_view.set_name("Cscope results - " + symbol)
-
-        cscope_edit = cscope_view.begin_edit()
-        cscope_view.insert(cscope_edit, 0,
-            "In folder " + self.root +
-            "\nFound " + str(len(matches)) + " matches for " + CscopeCommand._modes[mode] + ": " + symbol +
-            "\n" + 50*"-" + "\n\n" + "\n".join(matches))
-
-        if get_setting("display_outline") == True:
-            symbol_regions = cscope_view.find_all(symbol, sublime.LITERAL)
-            cscope_view.add_regions('cscopesublime-outlines', symbol_regions[1:], "text.find-in-files", "", sublime.DRAW_OUTLINED)
-        
-        cscope_view.end_edit(cscope_edit)
-
-        cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
-        cscope_view.set_read_only(True)
-        return
-
     def run(self, edit, mode):
         # self.word_separators = self.view.settings().get('word_separators')
         # print self.view.sel()
         # self.view.insert(edit, 0, "Hello, World!")
         # print mode
+        if self.database == None:
+            self.update_database(self.view.file_name())
+
+            if self.database == None:
+                sublime.status_message("Could not find cscope database: cscope.out")
+                return
+
         CscopeCommand.add_to_history( getCurrentPosition(self.view) )
 
         one = self.view.sel()[0].a
@@ -227,121 +341,15 @@ class CscopeCommand(sublime_plugin.TextCommand):
         for sel in self.view.sel():
             symbol = self.view.substr(self.view.word(sel))
 
-            t = threading.Thread(
-                    target = self.fetch_and_display_results,
-                    kwargs = {
-                        'symbol': symbol,
-                        'mode': mode
-                    }
+            worker = CscopeSublimeWorker(
+                    view = self.view,
+                    platform = sublime.platform(),
+                    root = self.root,
+                    database = self.database,
+                    symbol = symbol,
+                    mode = mode
                 )
-            t.start()
+            worker.start()
             
             # self.view.window().show_quick_panel(options, self.on_done)
             # self.view.window().run_command("show_panel", {"panel": "output." + "cscope"})
-
-    # switch statement for the different formatted output
-    # of Cscope's matches.
-    def _append_match_string(self, match, command_mode, nested):
-        match_string = "{0}".format(match["file"])
-        if command_mode == 0:
-            if nested:
-                match_string = ("{0:>6}\n{1:>6} [scope: {2}] {3}").format("..", match["line"], match["scope"], match["instance"])
-            else:
-                match_string = ("\n{0}:\n{1:>6} [scope: {2}] {3}").format(match["file"].replace(self.root, "."), match["line"], match["scope"], match["instance"])
-        elif command_mode == 1:
-            if nested:
-                match_string = ("{0:>6}\n{1:>6} {2}").format("..", match["line"], match["instance"])
-            else:
-                match_string = ("\n{0}:\n{1:>6} {2}").format(match["file"].replace(self.root, "."), match["line"], match["instance"])
-        elif command_mode == 2 or command_mode == 3:
-            if nested:
-                match_string = ("{0:>6}\n{1:>6} [function: {2}] {3}").format("..", match["line"], match["function"], match["instance"])
-            else:
-                match_string = ("\n{0}:\n{1:>6} [function: {2}] {3}").format(match["file"].replace(self.root, "."), match["line"], match["function"], match["instance"])
-
-        return match_string
-
-    def run_cscope(self, mode, word):
-        # 0 ==> C symbol
-        # 1 ==> function definition
-        # 2 ==> functions called by this function
-        # 3 ==> functions calling this function
-        # 4 ==> text string
-        # 5 ==> egrep pattern
-        # 6 ==> files
-
-        if self.database == None:
-            self.update_database(self.view.file_name())
-
-            if self.database == None:
-                sublime.status_message("Could not find cscope database: cscope.out")
-
-        newline = ''
-        if sublime.platform() == "windows":
-            newline = '\r\n'
-        else:
-            newline = '\n'
-
-        # print 'cscope -dL -f {0} -{1} {2}'.format(self.database, str(mode), word)
-        cscope_arg_list = ['cscope', '-dL', '-f', self.database, '-' + str(mode) + word]
-        popen_arg_list = {
-            "shell": False,
-            "stdout": subprocess.PIPE,
-            "stderr": subprocess.PIPE
-        }
-        if (sublime.platform() == "windows"):
-            popen_arg_list["creationflags"] = 0x08000000
-
-        proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
-        output = proc.communicate()[0].split(newline)
-        # print output
-        self.matches = []
-        for i in output:
-            match = self.match_output_line(i, mode)
-            if match != None:
-                self.matches.append(match)
-                # print "File ", match.group(1), ", Line ", match.group(2), ", Instance ", match.group(3)
-
-        # self.view.window().run_command("show_overlay", {"overlay": "goto", "text": "@"})
-        options = []
-        prev_file = ""
-        for match in self.matches:
-            options.append(self._append_match_string(match, mode, prev_file == match["file"]))
-            prev_file = match["file"]
-
-        return options
-
-    def match_output_line(self, line, mode):
-        match = None
-        output = None
-
-        # set up RegEx for matching cscope results
-        if mode == 0:
-            match = re.match('(\S+?)\s+?(<global>|\S+)?\s+(\d+)\s+(.+)', line)
-            if match:
-                output = {
-                    "file": match.group(1),
-                    "scope": match.group(2),
-                    "line": match.group(3),
-                    "instance": match.group(4)
-                }
-        elif mode == 1:
-            match = re.match('(\S+?)\s+?\S+\s+(\d+)\s+(.+)', line)
-            if match:
-                output = {
-                    "file": match.group(1),
-                    "line": match.group(2),
-                    "instance": match.group(3)
-                }
-        elif mode == 2 or mode == 3:
-            # [path] [function] [line #] [string]
-            match = re.match('(\S+)\s+?(\S+)\s+(\d+)\s+(.+)', line)
-            if match:
-                output = {
-                    "file": match.group(1),
-                    "function": match.group(2),
-                    "line": match.group(3),
-                    "instance": match.group(4)
-                }
-
-        return output
