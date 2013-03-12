@@ -173,8 +173,8 @@ class CscopeCommand(sublime_plugin.TextCommand):
         settings = get_settings()
 
     def update_database(self, filename):
-        if get_setting("database_location") != "":
-            self.database = get_setting("database_location")
+        if get_setting("database_location", "") != "":
+            self.database = get_setting("database_location", "")
             self.root = os.path.dirname(self.database)
         else:
             cdir = os.path.dirname(filename)
