@@ -14,5 +14,5 @@
 	"display_outline": true
 
     // A location for the cscope database - this will be used in preference to any 'found' database
-    //"cscope_database_location": "D:\\Program Files\\cscope\\cscope.out"
+    //"database_location": "D:\\Program Files\\cscope\\cscope.out"
 }
