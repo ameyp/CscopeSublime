@@ -232,7 +232,11 @@ class CscopeSublimeWorker(threading.Thread):
         return options
 
     def run(self):
-        self.matches = self.run_cscope(self.mode, self.symbol)
+        matches = self.run_cscope(self.mode, self.symbol)
+        self.num_matches = len(matches)
+        self.output = "In folder " + self.root + \
+            "\nFound " + str(len(matches)) + " matches for " + self._modes[self.mode] + \
+             ": " + self.symbol + "\n" + 50*"-" + "\n\n" + "\n".join(matches)
         sublime.set_timeout(self.display_results, 0)
 
     def display_results(self):
@@ -241,10 +245,7 @@ class CscopeSublimeWorker(threading.Thread):
         cscope_view.set_name("Cscope results - " + self.symbol)
 
         cscope_edit = cscope_view.begin_edit()
-        cscope_view.insert(cscope_edit, 0,
-            "In folder " + self.root +
-            "\nFound " + str(len(self.matches)) + " matches for " + self._modes[self.mode] + ": " + self.symbol +
-            "\n" + 50*"-" + "\n\n" + "\n".join(self.matches))
+        cscope_view.insert(cscope_edit, 0, self.output)
 
         if get_setting("display_outline") == True:
             symbol_regions = cscope_view.find_all(self.symbol, sublime.LITERAL)
