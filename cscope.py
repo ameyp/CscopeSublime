@@ -45,7 +45,7 @@ class CscopeVisiter(sublime_plugin.TextCommand):
                     break
 
                 match_line = self.view.substr(self.view.line(region))
-                
+
                 m = line_num_re.search(match_line)
                 if not m:
                     print "Unable to match line number in " + match_line
@@ -249,13 +249,13 @@ class CscopeSublimeWorker(threading.Thread):
         if get_setting("display_outline") == True:
             symbol_regions = cscope_view.find_all(self.symbol, sublime.LITERAL)
             cscope_view.add_regions('cscopesublime-outlines', symbol_regions[1:], "text.find-in-files", "", sublime.DRAW_OUTLINED)
-        
+
         cscope_view.end_edit(cscope_edit)
 
         cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
         cscope_view.set_read_only(True)
 
-        sublime.status_message("CscopeSublime: Done")
+        self.view.erase_status("CscopeSublime")
 
 class CscopeCommand(sublime_plugin.TextCommand):
     _backLines = []
@@ -322,6 +322,19 @@ class CscopeCommand(sublime_plugin.TextCommand):
                     break
                 cdir = os.path.dirname(cdir)
 
+    def update_status(self, workers, count=0, dir=1):
+        count = count + dir
+        for worker in workers:
+            if worker.is_alive():
+                if count == 7:
+                    dir = -1
+                elif count == 0:
+                    dir = 1
+                self.view.set_status("CscopeSublime", "Fetching lookup results [%s=%s]" %
+                                    (' ' * count, ' ' * (7 - count)))
+                sublime.set_timeout(lambda: self.update_status(workers, count, dir), 100)
+                break
+
     def run(self, edit, mode):
         if self.database == None:
             self.update_database(self.view.file_name())
@@ -334,10 +347,10 @@ class CscopeCommand(sublime_plugin.TextCommand):
 
         one = self.view.sel()[0].a
         two = self.view.sel()[0].b
-        
+
         self.view.sel().add(sublime.Region(one, two))
 
-        sublime.status_message("CscopeSublime: Fetching lookup results")
+        workers = []
         for sel in self.view.sel():
             symbol = self.view.substr(self.view.word(sel))
             worker = CscopeSublimeWorker(
@@ -349,3 +362,6 @@ class CscopeCommand(sublime_plugin.TextCommand):
                     mode = mode
                 )
             worker.start()
+            workers.append(worker)
+
+        self.update_status(workers)
