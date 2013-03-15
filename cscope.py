@@ -237,26 +237,6 @@ class CscopeSublimeWorker(threading.Thread):
         self.output = "In folder " + self.root + \
             "\nFound " + str(len(matches)) + " matches for " + self._modes[self.mode] + \
              ": " + self.symbol + "\n" + 50*"-" + "\n\n" + "\n".join(matches)
-        sublime.set_timeout(self.display_results, 0)
-
-    def display_results(self):
-        cscope_view = self.view.window().new_file()
-        cscope_view.set_scratch(True)
-        cscope_view.set_name("Cscope results - " + self.symbol)
-
-        cscope_edit = cscope_view.begin_edit()
-        cscope_view.insert(cscope_edit, 0, self.output)
-
-        if get_setting("display_outline") == True:
-            symbol_regions = cscope_view.find_all(self.symbol, sublime.LITERAL)
-            cscope_view.add_regions('cscopesublime-outlines', symbol_regions[1:], "text.find-in-files", "", sublime.DRAW_OUTLINED)
-
-        cscope_view.end_edit(cscope_edit)
-
-        cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
-        cscope_view.set_read_only(True)
-
-        self.view.erase_status("CscopeSublime")
 
 class CscopeCommand(sublime_plugin.TextCommand):
     _backLines = []
@@ -325,8 +305,11 @@ class CscopeCommand(sublime_plugin.TextCommand):
 
     def update_status(self, workers, count=0, dir=1):
         count = count + dir
+        found = False
+
         for worker in workers:
             if worker.is_alive():
+                found = True
                 if count == 7:
                     dir = -1
                 elif count == 0:
@@ -335,6 +318,29 @@ class CscopeCommand(sublime_plugin.TextCommand):
                                     (' ' * count, ' ' * (7 - count)))
                 sublime.set_timeout(lambda: self.update_status(workers, count, dir), 100)
                 break
+
+        if not found:
+            self.view.erase_status("CscopeSublime")
+            output = ""
+            for worker in workers:
+                self.display_results(worker.symbol, worker.output)
+
+    def display_results(self, symbol, output):
+        cscope_view = self.view.window().new_file()
+        cscope_view.set_scratch(True)
+        cscope_view.set_name("Cscope results - " + symbol)
+
+        cscope_edit = cscope_view.begin_edit()
+        cscope_view.insert(cscope_edit, 0, output)
+
+        if get_setting("display_outline") == True:
+            symbol_regions = cscope_view.find_all(symbol, sublime.LITERAL)
+            cscope_view.add_regions('cscopesublime-outlines', symbol_regions[1:], "text.find-in-files", "", sublime.DRAW_OUTLINED)
+
+        cscope_view.end_edit(cscope_edit)
+
+        cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
+        cscope_view.set_read_only(True)
 
     def run(self, edit, mode):
         if self.database == None:
