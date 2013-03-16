@@ -1,12 +1,55 @@
 [
     {
-        "keys": ["super+\\"],
+	"keys": ["super+\\"],
     	"command": "show_overlay",
     	"args":
     	{
-    		"overlay": "command_palette",
-    		"text": "Cscope: "
+    	    "overlay": "command_palette",
+    	    "text": "Cscope: "
     	}
+    },
+    {
+        // Lookup symbol
+        "keys": ["super+l", "super+s"],
+        "command": "cscope",
+        "args":
+        {
+            "mode": 0
+        }
+
+    },
+    {
+        // Lookup definition
+        "keys": ["super+l", "super+d"],
+        "command": "cscope",
+        "args":
+        {
+            "mode": 1
+        }
+    },
+    {
+        // Lookup CalleEs
+        "keys": ["super+l", "super+e"],
+        "command": "cscope",
+        "args":
+        {
+            "mode": 2
+        }
+    },
+    {
+        // Lookup CalleRs
+        "keys": ["super+l", "super+r"],
+        "command": "cscope",
+        "args":
+        {
+            "mode": 3
+        }
+    },
+    {
+        // Navigate to results with enter key
+        "keys": ["enter"],
+        "command": "cscope_visiter",
+        "context": [{"key": "selector", "operand": "text.find-in-files"}]
     },
     {
 	"keys": ["super+shift+["],
@@ -15,10 +58,5 @@
     {
 	"keys": ["super+shift+]"],
     	"command": "forward"
-    },
-    {
-    "keys": ["enter"],
-        "command": "cscope_visiter",
-        "context": [{"key": "selector", "operand": "text.find-in-files"}]
     }
 ]
