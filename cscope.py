@@ -241,6 +241,7 @@ class CscopeSublimeWorker(threading.Thread):
 class CscopeCommand(sublime_plugin.TextCommand):
     _backLines = []
     _forwardLines = []
+    _workers = []
 
     @staticmethod
     def is_history_empty():
@@ -343,6 +344,8 @@ class CscopeCommand(sublime_plugin.TextCommand):
         cscope_view.set_read_only(True)
 
     def run(self, edit, mode):
+        self.mode = mode
+
         if self.database == None:
             self.update_database(self.view.file_name())
 
@@ -357,18 +360,30 @@ class CscopeCommand(sublime_plugin.TextCommand):
 
         self.view.sel().add(sublime.Region(one, two))
 
-        workers = []
         for sel in self.view.sel():
             symbol = self.view.substr(self.view.word(sel))
-            worker = CscopeSublimeWorker(
-                    view = self.view,
-                    platform = sublime.platform(),
-                    root = self.root,
-                    database = self.database,
-                    symbol = symbol,
-                    mode = mode
-                )
-            worker.start()
-            workers.append(worker)
+            if get_setting("prompt_before_searching") == True:
+                print("prompting for search for symbol: %s" % (symbol))
+                sublime.active_window().show_input_panel('Cscope Symbol To Search:',
+                                                         symbol,
+                                                         self.on_search_confirmed,
+                                                         None,
+                                                         None)
+            else:
+                print("not prompting. just searching for symbol: %s" % (symbol))
+                self.on_search_confirmed(symbol)
 
-        self.update_status(workers)
+    def on_search_confirmed(self, symbol):
+        print("in on_search_confirmed for symbol: %s" % (symbol))
+        worker = CscopeSublimeWorker(
+                view = self.view,
+                platform = sublime.platform(),
+                root = self.root,
+                database = self.database,
+                symbol = symbol,
+                mode = self.mode
+            )
+        worker.start()
+        self._workers.append(worker)
+
+        self.update_status(self._workers)
