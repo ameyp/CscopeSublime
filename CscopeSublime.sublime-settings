@@ -11,7 +11,10 @@
     // in this file.
 
     // Whether or not to draw an outline around the matched symbol in the lookup results
-	"display_outline": true
+	"display_outline": true,
+
+	// Whether to prompt the user to edit/confirm the symbol before searching
+	"prompt_before_searching": true
 
     // A location for the cscope database - this will be used in preference to any 'found' database
     //"database_location": "D:\\Program Files\\cscope\\cscope.out"

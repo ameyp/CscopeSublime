@@ -343,6 +343,8 @@ class CscopeCommand(sublime_plugin.TextCommand):
         cscope_view.set_read_only(True)
 
     def run(self, edit, mode):
+        self.mode = mode
+
         if self.database == None:
             self.update_database(self.view.file_name())
 
@@ -356,19 +358,29 @@ class CscopeCommand(sublime_plugin.TextCommand):
         two = self.view.sel()[0].b
 
         self.view.sel().add(sublime.Region(one, two))
+        self.workers = []
 
-        workers = []
         for sel in self.view.sel():
             symbol = self.view.substr(self.view.word(sel))
-            worker = CscopeSublimeWorker(
-                    view = self.view,
-                    platform = sublime.platform(),
-                    root = self.root,
-                    database = self.database,
-                    symbol = symbol,
-                    mode = mode
-                )
-            worker.start()
-            workers.append(worker)
+            if get_setting("prompt_before_searching") == True:
+                sublime.active_window().show_input_panel('Cscope Symbol To Search:',
+                                                         symbol,
+                                                         self.on_search_confirmed,
+                                                         None,
+                                                         None)
+            else:
+                self.on_search_confirmed(symbol)
 
-        self.update_status(workers)
+    def on_search_confirmed(self, symbol):
+        worker = CscopeSublimeWorker(
+                view = self.view,
+                platform = sublime.platform(),
+                root = self.root,
+                database = self.database,
+                symbol = symbol,
+                mode = self.mode
+            )
+        worker.start()
+        self.workers.append(worker)
+
+        self.update_status(self.workers)
