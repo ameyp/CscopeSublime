@@ -354,6 +354,9 @@ class CscopeCommand(sublime_plugin.TextCommand):
 
         CscopeCommand.add_to_history( getCurrentPosition(self.view) )
 
+        # Search for the first word that is selected. While Sublime Text uses
+        # multiple selections, we only want the first selection since simultaneous
+        # multiple cscope lookups don't make sense.
         first_selection = self.view.sel()[0]
         one = first_selection.a
         two = first_selection.b
@@ -361,9 +364,6 @@ class CscopeCommand(sublime_plugin.TextCommand):
         self.view.sel().add(sublime.Region(one, two))
         self.workers = []
 
-        # Search for the first word that is selected. While Sublime Text uses
-        # multiple selections, we only want the first selection since simultaneous
-        # multiple cscope lookups don't make sense.
         symbol = self.view.substr(self.view.word(first_selection))
         if get_setting("prompt_before_searching") == True:
             sublime.active_window().show_input_panel('Cscope Symbol To Search:',
