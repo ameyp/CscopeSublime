@@ -18,5 +18,20 @@
   	"caption": "Cscope: Look up functions calling this function",
   	"command": "cscope",
   	"args": { "mode": 3 }
+  },
+  {
+    "caption": "Cscope: Search for this text string",
+    "command": "cscope",
+    "args": { "mode": 4 }
+  },
+  {
+    "caption": "Cscope: Search using this egrep pattern",
+    "command": "cscope",
+    "args": { "mode": 5 }
+  },
+  {
+    "caption": "Cscope: Find files #including this file",
+    "command": "cscope",
+    "args": { "mode": 6 }
   }
 ]
