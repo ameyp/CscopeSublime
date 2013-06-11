@@ -140,8 +140,9 @@ class CscopeSublimeWorker(threading.Thread):
     # switch statement for the different formatted output
     # of Cscope's matches.
     def append_match_string(self, match, command_mode, nested):
+        print("self: %s, match: %s, command_mode: %d: nested: %d" % (self, match, command_mode, nested))
         match_string = "{0}".format(match["file"])
-        if command_mode == 0:
+        if command_mode == 0 or command_mode == 4 or command_mode == 5 or command_mode == 6:
             if nested:
                 match_string = ("{0:>6}\n{1:>6} [scope: {2}] {3}").format("..", match["line"], match["scope"], match["instance"])
             else:
@@ -164,8 +165,9 @@ class CscopeSublimeWorker(threading.Thread):
         match = None
         output = None
 
+        print ("self: %s, line: %s, mode: %d" % (self, line, mode))
         # set up RegEx for matching cscope results
-        if mode == 0:
+        if mode == 0 or mode == 4 or mode == 5 or mode == 6:
             match = re.match('(\S+?)\s+?(<global>|\S+)?\s+(\d+)\s+(.+)', line)
             if match:
                 output = {
@@ -203,18 +205,22 @@ class CscopeSublimeWorker(threading.Thread):
             newline = '\n'
 
         # print 'cscope -dL -f {0} -{1} {2}'.format(self.database, str(mode), word)
-        cscope_arg_list = ['cscope', '-dL', '-f', self.database, '-' + str(mode) + word]
+        cscope_arg_list = ['cscope', '-dL', '-f', self.database, '-' + str(mode), word]
+        print cscope_arg_list
         popen_arg_list = {
             "shell": False,
             "stdout": subprocess.PIPE,
-            "stderr": subprocess.PIPE
+            "stderr": subprocess.PIPE,
+            "cwd": self.root
         }
         if (self.platform == "windows"):
             popen_arg_list["creationflags"] = 0x08000000
 
         proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
-        output = proc.communicate()[0].split(newline)
-        # print output
+        output, erroroutput = proc.communicate()
+        print output
+        print erroroutput
+        output = output.split(newline)
 
         self.matches = []
         for i in output:
