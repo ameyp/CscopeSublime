@@ -7,6 +7,17 @@ import threading
 
 CSCOPE_PLUGIN_DIR = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
 CSCOPE_SYNTAX_FILE = "Packages/" + CSCOPE_PLUGIN_DIR + "/Lookup Results.hidden-tmLanguage"
+CSCOPE_SEARCH_MODES = {
+    0: "C symbol",
+    1: "global definition",
+    2: "functions called by this function",
+    3: "functions calling this function",
+    4: "text string",
+    6: "egrep pattern",
+    7: "file named",
+    8: "files #including this file"
+}
+
 
 def get_settings():
     return sublime.load_settings("CscopeSublime.sublime-settings")
@@ -31,7 +42,7 @@ class CscopeVisiter(sublime_plugin.TextCommand):
             root_re = re.compile(r'In folder (.+)')
             filepath_re = re.compile(r'^(.+):$')
             filename_re = re.compile(r'([a-zA-Z0-9_\-\.]+):')
-            line_num_re = re.compile(r'^\s*([0-9]+)')
+            linenum_re = re.compile(r'^\s*([0-9]+)')
 
             m = root_re.search(self.view.substr(self.view.line(0)))
             if not m:
@@ -46,38 +57,47 @@ class CscopeVisiter(sublime_plugin.TextCommand):
 
                 match_line = self.view.substr(self.view.line(region))
 
-                m = line_num_re.search(match_line)
-                if not m:
-                    print "Unable to match line number in " + match_line
+                re_match_linenum = linenum_re.search(match_line)
+                re_match_filepath = filepath_re.search(match_line)
+
+                if not re_match_linenum and not re_match_filepath:
+                    print "Unable to match line number or file path in " + match_line
                     return
 
-                lineno = m.group(1)
-                line_beg = self.view.line(region).begin()
-                prev_line_bounds = self.view.line(sublime.Region(line_beg - 1, line_beg - 1))
-                file_line = self.view.substr(prev_line_bounds)
-                m = filepath_re.search(file_line)
-
-                while m == None:
-                    line_beg = prev_line_bounds.begin()
+                # if this line had a line number, use it and look up for the filename
+                if re_match_linenum:
+                    lineno = re_match_linenum.group(1)
+                    line_beg = self.view.line(region).begin()
                     prev_line_bounds = self.view.line(sublime.Region(line_beg - 1, line_beg - 1))
                     file_line = self.view.substr(prev_line_bounds)
-                    m = filepath_re.search(file_line)
 
-                if not m:
-                    print "Unable to match filepath in " + file_line
-                    return
+                    re_match_filepath = filepath_re.search(file_line)
 
-                filepath = os.path.join(root, m.group(1))
+                    while re_match_filepath == None:
+                        line_beg = prev_line_bounds.begin()
+                        prev_line_bounds = self.view.line(sublime.Region(line_beg - 1, line_beg - 1))
+                        file_line = self.view.substr(prev_line_bounds)
+                        re_match_filepath = filepath_re.search(file_line)
+
+                    if not re_match_filepath:
+                        print "Unable to match filepath in " + file_line
+                        return
+
+                elif re_match_filepath:
+                    lineno = "1"
+                    file_line = match_line
+
+                filepath = os.path.join(root, re_match_filepath.group(1))
                 if not ( os.path.isfile(filepath) ):
                     print "Unable to open file: %s" % (filepath)
                     return
 
-                m = filename_re.search(file_line)
-                if not m:
+                re_match_filename = filename_re.search(file_line)
+                if not re_match_filename:
                     print "Matched filepath, file exists, but unable to match filename in " + file_line
                     return
 
-                filename = m.group(1)
+                filename = re_match_filename.group(1)
                 print "Opening file '%s'" % (filepath + ":" + lineno)
                 CscopeCommand.add_to_history( getEncodedPosition(filepath, lineno) )
                 sublime.active_window().open_file(filepath + ":" + lineno, sublime.ENCODED_POSITION)
@@ -118,16 +138,6 @@ def getCurrentPosition(view):
     return getEncodedPosition( view.file_name(), view.rowcol( view.sel()[0].a )[0] + 1 )
 
 class CscopeSublimeWorker(threading.Thread):
-    _modes = {
-        0: "C symbol",
-        1: "Global definition",
-        2: "Functions called by this function",
-        3: "Functions calling this function",
-        4: "Text string",
-        5: "egrep pattern",
-        6: "Files #including this file"
-    }
-
     def __init__(self, view, platform, root, database, symbol, mode):
         super(CscopeSublimeWorker, self).__init__()
         self.view = view
@@ -141,7 +151,7 @@ class CscopeSublimeWorker(threading.Thread):
     # of Cscope's matches.
     def append_match_string(self, match, command_mode, nested):
         match_string = "{0}".format(match["file"])
-        if command_mode == 0:
+        if command_mode == 0 or command_mode == 4 or command_mode == 6 or command_mode == 8:
             if nested:
                 match_string = ("{0:>6}\n{1:>6} [scope: {2}] {3}").format("..", match["line"], match["scope"], match["instance"])
             else:
@@ -156,6 +166,8 @@ class CscopeSublimeWorker(threading.Thread):
                 match_string = ("{0:>6}\n{1:>6} [function: {2}] {3}").format("..", match["line"], match["function"], match["instance"])
             else:
                 match_string = ("\n{0}:\n{1:>6} [function: {2}] {3}").format(match["file"].replace(self.root, "."), match["line"], match["function"], match["instance"])
+        elif command_mode == 7:
+                match_string = ("\n{0}:").format(match["file"].replace(self.root, "."))
 
         return match_string
 
@@ -165,7 +177,7 @@ class CscopeSublimeWorker(threading.Thread):
         output = None
 
         # set up RegEx for matching cscope results
-        if mode == 0:
+        if mode == 0 or mode == 4 or mode == 6 or mode == 7 or mode == 8:
             match = re.match('(\S+?)\s+?(<global>|\S+)?\s+(\d+)\s+(.+)', line)
             if match:
                 output = {
@@ -207,14 +219,17 @@ class CscopeSublimeWorker(threading.Thread):
         popen_arg_list = {
             "shell": False,
             "stdout": subprocess.PIPE,
-            "stderr": subprocess.PIPE
+            "stderr": subprocess.PIPE,
+            "cwd": self.root
         }
         if (self.platform == "windows"):
             popen_arg_list["creationflags"] = 0x08000000
 
         proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
-        output = proc.communicate()[0].split(newline)
+        output, erroroutput = proc.communicate()
         # print output
+        # print erroroutput
+        output = output.split(newline)
 
         self.matches = []
         for i in output:
@@ -235,7 +250,7 @@ class CscopeSublimeWorker(threading.Thread):
         matches = self.run_cscope(self.mode, self.symbol)
         self.num_matches = len(matches)
         self.output = "In folder " + self.root + \
-            "\nFound " + str(len(matches)) + " matches for " + self._modes[self.mode] + \
+            "\nFound " + str(len(matches)) + " matches for " + CSCOPE_SEARCH_MODES[self.mode] + \
              ": " + self.symbol + "\n" + 50*"-" + "\n\n" + "\n".join(matches)
 
 class CscopeCommand(sublime_plugin.TextCommand):
@@ -366,7 +381,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
 
         symbol = self.view.substr(self.view.word(first_selection))
         if get_setting("prompt_before_searching") == True:
-            sublime.active_window().show_input_panel('Cscope Symbol To Search:',
+            sublime.active_window().show_input_panel('Search Cscope for ' + CSCOPE_SEARCH_MODES[self.mode] + ':',
                                                      symbol,
                                                      self.on_search_confirmed,
                                                      None,
