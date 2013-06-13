@@ -5,7 +5,7 @@
 		"args": {"mode": 0}
 	},
   {
-    "caption": "Cscope: Jump to function definition",
+    "caption": "Cscope: Look up global definition",
     "command": "cscope",
 		"args": {"mode": 1}
   },
@@ -18,5 +18,25 @@
   	"caption": "Cscope: Look up functions calling this function",
   	"command": "cscope",
   	"args": { "mode": 3 }
+  },
+  {
+    "caption": "Cscope: Search for text string",
+    "command": "cscope",
+    "args": { "mode": 4 }
+  },
+  {
+    "caption": "Cscope: Search using egrep pattern",
+    "command": "cscope",
+    "args": { "mode": 6 }
+  },
+  {
+    "caption": "Cscope: Find file",
+    "command": "cscope",
+    "args": { "mode": 7 }
+  },
+  {
+    "caption": "Cscope: Find files #including a file",
+    "command": "cscope",
+    "args": { "mode": 8 }
   }
 ]
