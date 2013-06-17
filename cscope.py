@@ -151,7 +151,7 @@ class CscopeSublimeWorker(threading.Thread):
     # of Cscope's matches.
     def append_match_string(self, match, command_mode, nested):
         match_string = "{0}".format(match["file"])
-        if command_mode == 0 or command_mode == 4 or command_mode == 6 or command_mode == 8:
+        if command_mode in [0, 4, 6, 8]:
             if nested:
                 match_string = ("{0:>6}\n{1:>6} [scope: {2}] {3}").format("..", match["line"], match["scope"], match["instance"])
             else:
@@ -161,7 +161,7 @@ class CscopeSublimeWorker(threading.Thread):
                 match_string = ("{0:>6}\n{1:>6} {2}").format("..", match["line"], match["instance"])
             else:
                 match_string = ("\n{0}:\n{1:>6} {2}").format(match["file"].replace(self.root, "."), match["line"], match["instance"])
-        elif command_mode == 2 or command_mode == 3:
+        elif command_mode in [2, 3]:
             if nested:
                 match_string = ("{0:>6}\n{1:>6} [function: {2}] {3}").format("..", match["line"], match["function"], match["instance"])
             else:
@@ -177,7 +177,7 @@ class CscopeSublimeWorker(threading.Thread):
         output = None
 
         # set up RegEx for matching cscope results
-        if mode == 0 or mode == 4 or mode == 6 or mode == 7 or mode == 8:
+        if mode in [0, 4, 6, 7, 8]:
             match = re.match('(\S+?)\s+?(<global>|\S+)?\s+(\d+)\s+(.+)', line)
             if match:
                 output = {
@@ -194,7 +194,7 @@ class CscopeSublimeWorker(threading.Thread):
                     "line": match.group(2),
                     "instance": match.group(3)
                 }
-        elif mode == 2 or mode == 3:
+        elif mode in [2, 3]:
             # [path] [function] [line #] [string]
             match = re.match('(\S+)\s+?(\S+)\s+(\d+)\s+(.+)', line)
             if match:
