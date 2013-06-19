@@ -302,7 +302,6 @@ class CscopeCommand(sublime_plugin.TextCommand):
     def __init__(self, view):
         self.view = view
         self.database = None
-        self.cscope_view = None
         settings = get_settings()
 
     def update_database(self, filename):
@@ -344,33 +343,33 @@ class CscopeCommand(sublime_plugin.TextCommand):
     def display_results(self, symbol, output):        
         cscope_views = {"all" : [x for x in self.view.window().views() if x.name().startswith("Cscope results")]}
 
-        def set_selected_buffer(buf_index=-1):
+        def update_cscope_result_buffer(buf_index=-1):
 
             if buf_index != -1 :
-                self.cscope_view = cscope_views["all"][buf_index]  
-                self.cscope_view.set_read_only(False)                            
+                cscope_view = cscope_views["all"][buf_index]  
+                cscope_view.set_read_only(False)                            
             else:
-                self.cscope_view = self.view.window().new_file()
-                self.cscope_view.set_scratch(True)
-                self.cscope_view.set_name("Cscope results - " + symbol)
+                cscope_view = self.view.window().new_file()
+                cscope_view.set_scratch(True)
+                cscope_view.set_name("Cscope results - " + symbol)
 
-            cscope_edit = self.cscope_view.begin_edit()
-            self.cscope_view.insert(cscope_edit, self.cscope_view.size(), output)
+            cscope_edit = cscope_view.begin_edit()
+            cscope_view.insert(cscope_edit, cscope_view.size(), output)
 
             if get_setting("display_outline") == True:
-                symbol_regions = self.cscope_view.find_all(symbol, sublime.LITERAL)
-                self.cscope_view.add_regions('cscopesublime-outlines', symbol_regions[1:], "text.find-in-files", "", sublime.DRAW_OUTLINED)
+                symbol_regions = cscope_view.find_all(symbol, sublime.LITERAL)
+                cscope_view.add_regions('cscopesublime-outlines', symbol_regions[1:], "text.find-in-files", "", sublime.DRAW_OUTLINED)
 
-            self.cscope_view.end_edit(cscope_edit)
+            cscope_view.end_edit(cscope_edit)
 
-            self.cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
-            self.cscope_view.set_read_only(True)
-            self.view.window().focus_view(self.cscope_view)
+            cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
+            cscope_view.set_read_only(True)
+            self.view.window().focus_view(cscope_view)
 
         if len(cscope_views["all"]) > 0:
-            self.view.window().show_quick_panel([view.name() for view in cscope_views["all"]], set_selected_buffer)
+            self.view.window().show_quick_panel([view.name() for view in cscope_views["all"]], update_cscope_result_buffer)
         else:
-            set_selected_buffer()
+            update_cscope_result_buffer()
 
     def run(self, edit, mode):
         self.mode = mode
