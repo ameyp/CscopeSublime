@@ -18,7 +18,6 @@ CSCOPE_SEARCH_MODES = {
     8: "files #including this file"
 }
 
-
 def get_settings():
     return sublime.load_settings("CscopeSublime.sublime-settings")
 
@@ -37,7 +36,7 @@ class CscopeVisiter(sublime_plugin.TextCommand):
     def __init__(self,view):
         self.view = view
 
-    def run_(self, args):
+    def run_(self, edit,args):
         if self.view.settings().get('syntax') == CSCOPE_SYNTAX_FILE:
             root_re = re.compile(r'In folder (.+)')
             filepath_re = re.compile(r'^(.+):$')
@@ -46,7 +45,7 @@ class CscopeVisiter(sublime_plugin.TextCommand):
 
             m = root_re.search(self.view.substr(self.view.line(0)))
             if not m:
-                print "Unable to determine root for: %s" % (self.view.substr(self.view.line(0)))
+                print("Unable to determine root for: %s" % (self.view.substr(self.view.line(0))))
                 return
 
             root = m.group(1)
@@ -61,7 +60,7 @@ class CscopeVisiter(sublime_plugin.TextCommand):
                 re_match_filepath = filepath_re.search(match_line)
 
                 if not re_match_linenum and not re_match_filepath:
-                    print "Unable to match line number or file path in " + match_line
+                    print("Unable to match line number or file path in " + match_line)
                     return
 
                 # if this line had a line number, use it and look up for the filename
@@ -80,7 +79,7 @@ class CscopeVisiter(sublime_plugin.TextCommand):
                         re_match_filepath = filepath_re.search(file_line)
 
                     if not re_match_filepath:
-                        print "Unable to match filepath in " + file_line
+                        print("Unable to match filepath in " + file_line)
                         return
 
                 elif re_match_filepath:
@@ -89,16 +88,16 @@ class CscopeVisiter(sublime_plugin.TextCommand):
 
                 filepath = os.path.join(root, re_match_filepath.group(1))
                 if not ( os.path.isfile(filepath) ):
-                    print "Unable to open file: %s" % (filepath)
+                    print("Unable to open file: %s" % (filepath))
                     return
 
                 re_match_filename = filename_re.search(file_line)
                 if not re_match_filename:
-                    print "Matched filepath, file exists, but unable to match filename in " + file_line
+                    print("Matched filepath, file exists, but unable to match filename in " + file_line)
                     return
 
                 filename = re_match_filename.group(1)
-                print "Opening file '%s'" % (filepath + ":" + lineno)
+                print("Opening file '%s'" % (filepath + ":" + lineno))
                 CscopeCommand.add_to_history( getEncodedPosition(filepath, lineno) )
                 sublime.active_window().open_file(filepath + ":" + lineno, sublime.ENCODED_POSITION)
         else:
@@ -229,7 +228,7 @@ class CscopeSublimeWorker(threading.Thread):
         output, erroroutput = proc.communicate()
         # print output
         # print erroroutput
-        output = output.split(newline)
+        output = str(output, encoding='utf8').split(newline)
 
         self.matches = []
         for i in output:
@@ -257,14 +256,16 @@ class CscopeCommand(sublime_plugin.TextCommand):
     _backLines = []
     _forwardLines = []
 
+    cscope_output_info  = {}
+
     @staticmethod
     def is_history_empty():
         return len(CscopeCommand._backLines) == 0
 
     @staticmethod
     def add_to_history(line):
-        print "add_to_history"
-        print CscopeCommand._backLines, CscopeCommand._forwardLines
+        print("add_to_history")
+        print(CscopeCommand._backLines, CscopeCommand._forwardLines)
         if CscopeCommand.is_history_empty() or CscopeCommand._backLines[0] != line:
             CscopeCommand._backLines.insert(0, line)
         if len(CscopeCommand._backLines) > 100:
@@ -272,8 +273,8 @@ class CscopeCommand(sublime_plugin.TextCommand):
 
     @staticmethod
     def pop_latest_from_history():
-        print "pop_latest_from_history"
-        print CscopeCommand._backLines, CscopeCommand._forwardLines
+        print("pop_latest_from_history")
+        print(CscopeCommand._backLines, CscopeCommand._forwardLines)
         latest = CscopeCommand._backLines[0]
         CscopeCommand._backLines = CscopeCommand._backLines[1:]
         return latest
@@ -284,8 +285,8 @@ class CscopeCommand(sublime_plugin.TextCommand):
 
     @staticmethod
     def add_to_future(line):
-        print "add_to_future"
-        print CscopeCommand._backLines, CscopeCommand._forwardLines
+        print("add_to_future")
+        print(CscopeCommand._backLines, CscopeCommand._forwardLines)
         if CscopeCommand.is_future_empty() or CscopeCommand._forwardLines[0] != line:
             CscopeCommand._forwardLines.insert(0, line)
         if len(CscopeCommand._forwardLines) > 100:
@@ -293,8 +294,8 @@ class CscopeCommand(sublime_plugin.TextCommand):
 
     @staticmethod
     def pop_latest_from_future():
-        print "pop_latest_from_future"
-        print CscopeCommand._backLines, CscopeCommand._forwardLines
+        print("pop_latest_from_future")
+        print(CscopeCommand._backLines, CscopeCommand._forwardLines)
         latest = CscopeCommand._forwardLines[0]
         CscopeCommand._forwardLines = CscopeCommand._forwardLines[1:]
         return latest
@@ -341,19 +342,17 @@ class CscopeCommand(sublime_plugin.TextCommand):
                 self.display_results(worker.symbol, worker.output)
 
     def display_results(self, symbol, output):
+
         cscope_view = self.view.window().new_file()
         cscope_view.set_scratch(True)
         cscope_view.set_name("Cscope results - " + symbol)
+        CscopeCommand.cscope_output_info['view'] = cscope_view
+        CscopeCommand.cscope_output_info['pos'] = 0
+        CscopeCommand.cscope_output_info['text'] = output
+        CscopeCommand.cscope_output_info['symbol'] = symbol
 
-        cscope_edit = cscope_view.begin_edit()
-        cscope_view.insert(cscope_edit, 0, output)
-
-        if get_setting("display_outline") == True:
-            symbol_regions = cscope_view.find_all(symbol, sublime.LITERAL)
-            cscope_view.add_regions('cscopesublime-outlines', symbol_regions[1:], "text.find-in-files", "", sublime.DRAW_OUTLINED)
-
-        cscope_view.end_edit(cscope_edit)
-
+        cscope_view.run_command("display_cscope_results")
+        
         cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
         cscope_view.set_read_only(True)
 
@@ -402,3 +401,11 @@ class CscopeCommand(sublime_plugin.TextCommand):
         self.workers.append(worker)
 
         self.update_status(self.workers)
+
+class DisplayCscopeResultsCommand(sublime_plugin.TextCommand):
+
+    def run(self,edit):
+        self.view.insert(edit, CscopeCommand.cscope_output_info['pos'], CscopeCommand.cscope_output_info['text'])
+        if get_setting("display_outline") == True:
+            symbol_regions = self.view.find_all(CscopeCommand.cscope_output_info['symbol'], sublime.LITERAL)
+            self.view.add_regions('cscopesublime-outlines', symbol_regions[1:], "text.find-in-files", "", sublime.DRAW_OUTLINED)
