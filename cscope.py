@@ -36,7 +36,7 @@ class CscopeVisiter(sublime_plugin.TextCommand):
     def __init__(self,view):
         self.view = view
 
-    def run_(self, args):
+    def run_(self, edit,args):
         if self.view.settings().get('syntax') == CSCOPE_SYNTAX_FILE:
             root_re = re.compile(r'In folder (.+)')
             filepath_re = re.compile(r'^(.+):$')
@@ -349,7 +349,8 @@ class CscopeCommand(sublime_plugin.TextCommand):
         CscopeCommand.cscope_output_info['view'] = cscope_view
         CscopeCommand.cscope_output_info['pos'] = 0
         CscopeCommand.cscope_output_info['text'] = output
-        
+        CscopeCommand.cscope_output_info['symbol'] = symbol
+
         cscope_view.run_command("display_cscope_results")
         
         cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
@@ -406,5 +407,5 @@ class DisplayCscopeResultsCommand(sublime_plugin.TextCommand):
     def run(self,edit):
         self.view.insert(edit, CscopeCommand.cscope_output_info['pos'], CscopeCommand.cscope_output_info['text'])
         if get_setting("display_outline") == True:
-            symbol_regions = self.view.find_all(symbol, sublime.LITERAL)
+            symbol_regions = self.view.find_all(CscopeCommand.cscope_output_info['symbol'], sublime.LITERAL)
             self.view.add_regions('cscopesublime-outlines', symbol_regions[1:], "text.find-in-files", "", sublime.DRAW_OUTLINED)
