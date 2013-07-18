@@ -3,6 +3,7 @@ A plugin to use Cscope for code navigation from inside Sublime Text 2 and 3.
 
 ## Features
 This plugin supports the majority of the functionality offered by Cscope, namely:
+
 1. Find a given symbol
 2. Find a given function definition
 3. Find functions called by a given function
