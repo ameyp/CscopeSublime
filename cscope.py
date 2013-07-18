@@ -33,10 +33,10 @@ def get_setting(key, default=None, view=None):
     return get_settings().get(key, default)
 
 class CscopeVisiter(sublime_plugin.TextCommand):
-    def __init__(self,view):
+    def __init__(self, view):
         self.view = view
 
-    def run_(self, edit,args):
+    def run_(self, edit, args):
         if self.view.settings().get('syntax') == CSCOPE_SYNTAX_FILE:
             root_re = re.compile(r'In folder (.+)')
             filepath_re = re.compile(r'^(.+):$')
@@ -105,7 +105,7 @@ class CscopeVisiter(sublime_plugin.TextCommand):
             self.view.run_command("drag_select", args)
 
 class GobackCommand(sublime_plugin.TextCommand):
-    def __init__(self,view):
+    def __init__(self, view):
         self.view = view
 
     def run(self, edit):
@@ -118,7 +118,7 @@ class GobackCommand(sublime_plugin.TextCommand):
             sublime.active_window().open_file(file_name, sublime.ENCODED_POSITION)
 
 class ForwardCommand(sublime_plugin.TextCommand):
-    def __init__(self,view):
+    def __init__(self, view):
         self.view = view
 
     def run(self, edit):
@@ -342,7 +342,6 @@ class CscopeCommand(sublime_plugin.TextCommand):
                 self.display_results(worker.symbol, worker.output)
 
     def display_results(self, symbol, output):
-
         cscope_view = self.view.window().new_file()
         cscope_view.set_scratch(True)
         cscope_view.set_name("Cscope results - " + symbol)
@@ -352,7 +351,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
         CscopeCommand.cscope_output_info['symbol'] = symbol
 
         cscope_view.run_command("display_cscope_results")
-        
+
         cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
         cscope_view.set_read_only(True)
 
@@ -404,7 +403,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
 
 class DisplayCscopeResultsCommand(sublime_plugin.TextCommand):
 
-    def run(self,edit):
+    def run(self, edit):
         self.view.insert(edit, CscopeCommand.cscope_output_info['pos'], CscopeCommand.cscope_output_info['text'])
         if get_setting("display_outline") == True:
             symbol_regions = self.view.find_all(CscopeCommand.cscope_output_info['symbol'], sublime.LITERAL)
