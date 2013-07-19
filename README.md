@@ -1,9 +1,17 @@
 # Cscope
-A plugin to use Cscope for code navigation from inside Sublime Text 2.
+A plugin to use Cscope for code navigation from inside Sublime Text 2 and 3.
 
 ## Features
-1. Global symbol lookup
-2. Global function-definition lookup
+This plugin supports the majority of the functionality offered by Cscope, namely:
+
+1. Find a given symbol
+2. Find a given function definition
+3. Find functions called by a given function
+4. Find functions calling a given function
+5. Find a given text string
+6. Find a given egrep pattern
+7. Find a given file
+8. Find files #including a given file
 
 ## Installation
 1. Install Cscope (a Windows port can be found [here](http://code.google.com/p/cscope-win32))
