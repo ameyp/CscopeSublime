@@ -36,7 +36,7 @@ class CscopeVisiter(sublime_plugin.TextCommand):
     def __init__(self, view):
         self.view = view
 
-    def run_(self, edit, args):
+    def run(self, edit):
         if self.view.settings().get('syntax') == CSCOPE_SYNTAX_FILE:
             root_re = re.compile(r'In folder (.+)')
             filepath_re = re.compile(r'^(.+):$')
@@ -100,9 +100,6 @@ class CscopeVisiter(sublime_plugin.TextCommand):
                 print("Opening file '%s'" % (filepath + ":" + lineno))
                 CscopeCommand.add_to_history( getEncodedPosition(filepath, lineno) )
                 sublime.active_window().open_file(filepath + ":" + lineno, sublime.ENCODED_POSITION)
-        else:
-            self.view.run_command("drag_select", {'event': args['event']})
-            self.view.run_command("drag_select", args)
 
 class GobackCommand(sublime_plugin.TextCommand):
     def __init__(self, view):
@@ -228,7 +225,12 @@ class CscopeSublimeWorker(threading.Thread):
         output, erroroutput = proc.communicate()
         # print output
         # print erroroutput
-        output = str(output, encoding='utf8').split(newline)
+        try:
+            output = str(output, encoding="utf8")
+        except TypeError:
+            output = unicode(str(output), encoding="utf8")
+
+        output = output.split(newline)
 
         self.matches = []
         for i in output:
