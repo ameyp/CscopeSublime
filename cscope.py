@@ -4,6 +4,7 @@ import re
 import subprocess
 import string
 import threading
+import errno
 
 CSCOPE_PLUGIN_DIR = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
 CSCOPE_SYNTAX_FILE = "Packages/" + CSCOPE_PLUGIN_DIR + "/Lookup Results.hidden-tmLanguage"
@@ -221,7 +222,14 @@ class CscopeSublimeWorker(threading.Thread):
         if (self.platform == "windows"):
             popen_arg_list["creationflags"] = 0x08000000
 
-        proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
+        try:
+            proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
+        except OSError as e:
+            if e.errno == errno.ENOENT:
+                sublime.error_message("Cscope ERROR: cscope binary not found!")
+            else:
+                sublime.error_message("Cscope ERROR: %s failed!" % cscope_arg_list)
+
         output, erroroutput = proc.communicate()
         # print output
         # print erroroutput
