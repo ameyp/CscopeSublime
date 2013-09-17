@@ -14,8 +14,12 @@
 	"display_outline": true,
 
 	// Whether to prompt the user to edit/confirm the symbol before searching
-	"prompt_before_searching": true
+	"prompt_before_searching": true,
 
     // A location for the cscope database - this will be used in preference to any 'found' database
     //"database_location": "D:\\Program Files\\cscope\\cscope.out"
+
+    // cscope binary path
+    //"cscope_path": "/usr/bin/cscope"
+    // "cscope_path": "C:\\cscope\\cscope.exe"
 }
