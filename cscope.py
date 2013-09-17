@@ -211,8 +211,10 @@ class CscopeSublimeWorker(threading.Thread):
         else:
             newline = '\n'
 
+        self.cscope_path = get_setting("cscope_path", "cscope")
+
         # print 'cscope -dL -f {0} -{1} {2}'.format(self.database, str(mode), word)
-        cscope_arg_list = ['cscope', '-dL', '-f', self.database, '-' + str(mode) + word]
+        cscope_arg_list = [self.cscope_path, '-dL', '-f', self.database, '-' + str(mode) + word]
         popen_arg_list = {
             "shell": False,
             "stdout": subprocess.PIPE,
