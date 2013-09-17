@@ -21,8 +21,8 @@
     // If you leave this as the default (just "cscope"), then your system
     // $PATH (or %PATH% for Windows users) will be searched.
     //
-    // Linux and OS X example: "cscope_executable": "/usr/bin/cscope"
-    // Windows example:        "cscope_executable": "C:\\cscope\\cscope.exe"
+    // Linux and OS X example: "executable": "/usr/bin/cscope"
+    // Windows example:        "executable": "C:\\cscope\\cscope.exe"
     "executable": "cscope"
 
     // A location for the cscope database - this will be used in preference to any 'found' database
