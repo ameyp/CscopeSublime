@@ -135,7 +135,7 @@ def getCurrentPosition(view):
     return getEncodedPosition( view.file_name(), view.rowcol( view.sel()[0].a )[0] + 1 )
 
 class CscopeSublimeWorker(threading.Thread):
-    def __init__(self, view, platform, root, database, symbol, mode):
+    def __init__(self, view, platform, root, database, symbol, mode, executable):
         super(CscopeSublimeWorker, self).__init__()
         self.view = view
         self.platform = platform
@@ -143,6 +143,7 @@ class CscopeSublimeWorker(threading.Thread):
         self.database = database
         self.symbol = symbol
         self.mode = mode
+        self.executable = executable
 
     # switch statement for the different formatted output
     # of Cscope's matches.
@@ -211,10 +212,7 @@ class CscopeSublimeWorker(threading.Thread):
         else:
             newline = '\n'
 
-        self.cscope_path = get_setting("cscope_path", "cscope")
-
-        # print 'cscope -dL -f {0} -{1} {2}'.format(self.database, str(mode), word)
-        cscope_arg_list = [self.cscope_path, '-dL', '-f', self.database, '-' + str(mode) + word]
+        cscope_arg_list = [self.executable, '-dL', '-f', self.database, '-' + str(mode) + word]
         popen_arg_list = {
             "shell": False,
             "stdout": subprocess.PIPE,
@@ -228,7 +226,7 @@ class CscopeSublimeWorker(threading.Thread):
             proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
         except OSError as e:
             if e.errno == errno.ENOENT:
-                sublime.error_message("Cscope ERROR: cscope binary not found!")
+                sublime.error_message("Cscope ERROR: cscope binary \"%s\" not found!" % self.executable)
             else:
                 sublime.error_message("Cscope ERROR: %s failed!" % cscope_arg_list)
 
@@ -315,6 +313,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
     def __init__(self, view):
         self.view = view
         self.database = None
+        self.executable = None
         settings = get_settings()
 
     def update_database(self, filename):
@@ -369,6 +368,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
 
     def run(self, edit, mode):
         self.mode = mode
+        self.executable = get_setting("executable", "cscope")
 
         if self.database == None:
             self.update_database(self.view.file_name())
@@ -406,7 +406,8 @@ class CscopeCommand(sublime_plugin.TextCommand):
                 root = self.root,
                 database = self.database,
                 symbol = symbol,
-                mode = self.mode
+                mode = self.mode,
+                executable = self.executable
             )
         worker.start()
         self.workers.append(worker)
