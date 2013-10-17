@@ -15,8 +15,9 @@ This plugin supports the majority of the functionality offered by Cscope, namely
 
 ## Installation
 1. Install Cscope (a Windows port can be found [here](http://code.google.com/p/cscope-win32))
-2. Generate a cscope database (cscope.out) in the root directory of your project
-3. Check out the repo under your "Packages" directory or install via [Package Control](http://wbond.net/sublime_packages/package_control) and restart Sublime Text.
+2. Customize the cscope executable path in your user settings file, if needed.
+3. Generate a cscope database (cscope.out) in the root directory of your project
+4. Check out the repo under your "Packages" directory or install via [Package Control](http://wbond.net/sublime_packages/package_control) and restart Sublime Text.
 
 ## Screenshots
 Here's what the symbol lookup results buffer looks like:

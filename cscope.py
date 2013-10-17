@@ -4,6 +4,7 @@ import re
 import subprocess
 import string
 import threading
+import errno
 
 CSCOPE_PLUGIN_DIR = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
 CSCOPE_SYNTAX_FILE = "Packages/" + CSCOPE_PLUGIN_DIR + "/Lookup Results.hidden-tmLanguage"
@@ -134,7 +135,7 @@ def getCurrentPosition(view):
     return getEncodedPosition( view.file_name(), view.rowcol( view.sel()[0].a )[0] + 1 )
 
 class CscopeSublimeWorker(threading.Thread):
-    def __init__(self, view, platform, root, database, symbol, mode):
+    def __init__(self, view, platform, root, database, symbol, mode, executable):
         super(CscopeSublimeWorker, self).__init__()
         self.view = view
         self.platform = platform
@@ -142,6 +143,7 @@ class CscopeSublimeWorker(threading.Thread):
         self.database = database
         self.symbol = symbol
         self.mode = mode
+        self.executable = executable
 
     # switch statement for the different formatted output
     # of Cscope's matches.
@@ -210,8 +212,7 @@ class CscopeSublimeWorker(threading.Thread):
         else:
             newline = '\n'
 
-        # print 'cscope -dL -f {0} -{1} {2}'.format(self.database, str(mode), word)
-        cscope_arg_list = ['cscope', '-dL', '-f', self.database, '-' + str(mode) + word]
+        cscope_arg_list = [self.executable, '-dL', '-f', self.database, '-' + str(mode) + word]
         popen_arg_list = {
             "shell": False,
             "stdout": subprocess.PIPE,
@@ -221,7 +222,14 @@ class CscopeSublimeWorker(threading.Thread):
         if (self.platform == "windows"):
             popen_arg_list["creationflags"] = 0x08000000
 
-        proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
+        try:
+            proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
+        except OSError as e:
+            if e.errno == errno.ENOENT:
+                sublime.error_message("Cscope ERROR: cscope binary \"%s\" not found!" % self.executable)
+            else:
+                sublime.error_message("Cscope ERROR: %s failed!" % cscope_arg_list)
+
         output, erroroutput = proc.communicate()
         # print output
         # print erroroutput
@@ -305,6 +313,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
     def __init__(self, view):
         self.view = view
         self.database = None
+        self.executable = None
         settings = get_settings()
 
     def update_database(self, filename):
@@ -359,6 +368,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
 
     def run(self, edit, mode):
         self.mode = mode
+        self.executable = get_setting("executable", "cscope")
 
         if self.database == None:
             self.update_database(self.view.file_name())
@@ -396,7 +406,8 @@ class CscopeCommand(sublime_plugin.TextCommand):
                 root = self.root,
                 database = self.database,
                 symbol = symbol,
-                mode = self.mode
+                mode = self.mode,
+                executable = self.executable
             )
         worker.start()
         self.workers.append(worker)

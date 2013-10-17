@@ -1,5 +1,5 @@
 {
-	// All options in here can also be specified in your user settings
+    // All options in here can also be specified in your user settings
     // with the prefix "CscopeSublime_".
     // For example if you have
     //
@@ -11,10 +11,19 @@
     // in this file.
 
     // Whether or not to draw an outline around the matched symbol in the lookup results
-	"display_outline": true,
+    "display_outline": true,
 
-	// Whether to prompt the user to edit/confirm the symbol before searching
-	"prompt_before_searching": true
+    // Whether to prompt the user to edit/confirm the symbol before searching
+    "prompt_before_searching": true,
+
+    // The "cscope" program executable name. If needed, you can change this
+    // in your user settings to be the full path to the cscope executable.
+    // If you leave this as the default (just "cscope"), then your system
+    // $PATH (or %PATH% for Windows users) will be searched.
+    //
+    // Linux and OS X example: "executable": "/usr/bin/cscope"
+    // Windows example:        "executable": "C:\\cscope\\cscope.exe"
+    "executable": "cscope"
 
     // A location for the cscope database - this will be used in preference to any 'found' database
     //"database_location": "D:\\Program Files\\cscope\\cscope.out"
