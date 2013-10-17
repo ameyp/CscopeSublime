@@ -132,7 +132,11 @@ def getEncodedPosition(file_name, line_num):
     return file_name + ":" + str(line_num)
 
 def getCurrentPosition(view):
-    return getEncodedPosition( view.file_name(), view.rowcol( view.sel()[0].a )[0] + 1 )
+    if view.file_name():
+        return getEncodedPosition( view.file_name(), view.rowcol( view.sel()[0].a )[0] + 1 )
+    else:
+        return None
+
 
 class CscopeSublimeWorker(threading.Thread):
     def __init__(self, view, platform, root, database, symbol, mode, executable):
@@ -321,14 +325,20 @@ class CscopeCommand(sublime_plugin.TextCommand):
             self.database = get_setting("database_location", "")
             self.root = os.path.dirname(self.database)
         else:
-            cdir = os.path.dirname(filename)
-            while cdir != os.path.dirname(cdir):
-                if ("cscope.out" in os.listdir(cdir)):
-                    self.root = cdir
-                    self.database = os.path.join(cdir, "cscope.out")
-                    # print "Database found: ", self.database
-                    break
-                cdir = os.path.dirname(cdir)
+            if (filename):
+                cdir_list = [os.path.dirname(filename)]
+            else:
+                project_info = self.view.window().project_data()
+                cdir_list = [folder['path'] for folder in project_info['folders']]
+            
+            for cdir in cdir_list:
+                while cdir != os.path.dirname(cdir):
+                    if ("cscope.out" in os.listdir(cdir)):
+                        self.root = cdir
+                        self.database = os.path.join(cdir, "cscope.out")
+                        print("Database found: ", self.database)
+                        return
+                    cdir = os.path.dirname(cdir)
 
     def update_status(self, workers, count=0, dir=1):
         count = count + dir
@@ -377,7 +387,9 @@ class CscopeCommand(sublime_plugin.TextCommand):
                 sublime.error_message("Could not find cscope database: cscope.out")
                 return
 
-        CscopeCommand.add_to_history( getCurrentPosition(self.view) )
+        cur_pos = getCurrentPosition(self.view)
+        if cur_pos:
+            CscopeCommand.add_to_history(cur_pos)
 
         # Search for the first word that is selected. While Sublime Text uses
         # multiple selections, we only want the first selection since simultaneous
