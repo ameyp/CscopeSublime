@@ -330,7 +330,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
             else:
                 project_info = self.view.window().project_data()
                 cdir_list = [folder['path'] for folder in project_info['folders']]
-            
+
             for cdir in cdir_list:
                 while cdir != os.path.dirname(cdir):
                     if ("cscope.out" in os.listdir(cdir)):
