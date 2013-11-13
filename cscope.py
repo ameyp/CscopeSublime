@@ -7,6 +7,12 @@ import threading
 import errno
 
 CSCOPE_PLUGIN_DIR = os.path.basename(os.path.dirname(os.path.realpath(__file__)))
+
+# Package Control on ST3 compresses the package into a single "package-name.sublime-package" file,
+# but ST3 internally treats the location of the package's contents as being in "Packages/packages-name/"
+if CSCOPE_PLUGIN_DIR.find(".sublime-package") != -1:
+    CSCOPE_PLUGIN_DIR = CSCOPE_PLUGIN_DIR[0:CSCOPE_PLUGIN_DIR.find(".sublime-package")]
+
 CSCOPE_SYNTAX_FILE = "Packages/" + CSCOPE_PLUGIN_DIR + "/Lookup Results.hidden-tmLanguage"
 CSCOPE_SEARCH_MODES = {
     0: "C symbol",
