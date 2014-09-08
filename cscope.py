@@ -270,18 +270,15 @@ class CscopeSublimeWorker(threading.Thread):
         return output
 
     def run_cscope(self, mode, word):
-        newline = ''
-        if self.platform == "windows":
-            newline = '\r\n'
-        else:
-            newline = '\n'
+        newline = '\n'
 
         cscope_arg_list = [self.executable, '-dL', '-f', self.database.location, '-' + str(mode) + word]
         popen_arg_list = {
             "shell": False,
             "stdout": subprocess.PIPE,
             "stderr": subprocess.PIPE,
-            "cwd": self.database.root
+            "cwd": self.database.root,
+            "universal_newlines": True
         }
         if (self.platform == "windows"):
             popen_arg_list["creationflags"] = 0x08000000
@@ -296,12 +293,9 @@ class CscopeSublimeWorker(threading.Thread):
                 sublime.error_message("Cscope ERROR: %s failed!" % cscope_arg_list)
 
         output, erroroutput = proc.communicate()
+
         # print output
         # print erroroutput
-        try:
-            output = str(output, encoding="utf8")
-        except TypeError:
-            output = unicode(str(output), encoding="utf8")
 
         output = output.split(newline)
 
