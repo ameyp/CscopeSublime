@@ -26,6 +26,7 @@ CSCOPE_SEARCH_MODES = {
     9: "Find assignment to this symbol"
 }
 
+
 def get_settings():
     return sublime.load_settings("CscopeSublime.sublime-settings")
 
@@ -463,7 +464,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
         self.workers = []
 
         symbol = self.view.substr(self.view.word(first_selection))
-        if get_setting("prompt_before_searching") == True:
+        if get_setting("prompt_before_searching") == True or symbol is "":
             sublime.active_window().show_input_panel('Search Cscope for ' + CSCOPE_SEARCH_MODES[self.mode] + ':',
                                                      symbol,
                                                      self.on_search_confirmed,
