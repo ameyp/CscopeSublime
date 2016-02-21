@@ -22,7 +22,8 @@ CSCOPE_SEARCH_MODES = {
     4: "text string",
     6: "egrep pattern",
     7: "file named",
-    8: "files #including this file"
+    8: "files #including this file",
+    9: "Find assignment to this symbol"
 }
 
 def get_settings():
