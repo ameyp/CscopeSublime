@@ -23,7 +23,11 @@
     //
     // Linux and OS X example: "executable": "/usr/bin/cscope"
     // Windows example:        "executable": "C:\\cscope\\cscope.exe"
-    "executable": "cscope"
+    "executable": "cscope",
+
+    // enable if you are using cygwin
+    "using_cygwin": true,
+    
 
     // A location for the cscope database - this will be used in preference to any 'found' database
     //"database_location": "D:\\Program Files\\cscope\\cscope.out"

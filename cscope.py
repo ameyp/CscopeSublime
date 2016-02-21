@@ -39,6 +39,17 @@ def get_setting(key, default=None, view=None):
         pass
     return get_settings().get(key, default)
 
+
+def convert_to_system_filepath(filepath):
+    platform = "windows"
+    CYG_DRIVE = "/cygdrive/"
+    if platform is "windows" and get_setting("using_cygwin") is True:
+        if filepath.startswith(CYG_DRIVE) :
+            filepath = filepath[len(CYG_DRIVE):]
+            filepath = filepath[0].upper() + ":/" + filepath[2:]
+
+    return filepath
+
 class CscopeVisiter(sublime_plugin.TextCommand):
     def __init__(self, view):
         self.view = view
@@ -56,6 +67,7 @@ class CscopeVisiter(sublime_plugin.TextCommand):
                 return
 
             root = m.group(1)
+
             for region in self.view.sel():
                 # Find anything looking like file in whole line at cursor
                 if not region.empty():
@@ -94,6 +106,8 @@ class CscopeVisiter(sublime_plugin.TextCommand):
                     file_line = match_line
 
                 filepath = os.path.join(root, re_match_filepath.group(1))
+                filepath = convert_to_system_filepath(filepath)
+
                 if not ( os.path.isfile(filepath) ):
                     print("Unable to open file: %s" % (filepath))
                     return
@@ -219,6 +233,8 @@ class CscopeSublimeWorker(threading.Thread):
         newline = ''
         if self.platform == "windows":
             newline = '\r\n'
+            if get_setting("using_cygwin") is True:
+                newline = '\n'
         else:
             newline = '\n'
 
@@ -241,8 +257,7 @@ class CscopeSublimeWorker(threading.Thread):
                 sublime.error_message("Cscope ERROR: %s failed!" % cscope_arg_list)
 
         output, erroroutput = proc.communicate()
-        # print output
-        # print erroroutput
+
         try:
             output = str(output, encoding="utf8")
         except TypeError:
