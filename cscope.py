@@ -41,6 +41,45 @@ def get_setting(key, default=None, view=None):
     return get_settings().get(key, default)
 
 
+def get_menu_items():
+    VALILD_SETTINGS = [
+        get_setting("cscope_c_sybmol"),
+        get_setting("cscope_global_definition"),
+        get_setting("cscope_functions_called_by"),
+        get_setting("cscope_functions_calling"),
+        get_setting("cscope_text_string"),
+        False,
+        get_setting("cscope_egrep_pattern"),
+        get_setting("cscope_file_named"),
+        get_setting("cscope_files_including"),
+        get_setting("cscope_find_assignment")
+    ]
+    menu_item = "[ \n"
+    menu_item = menu_item + "\t{\n\t\t\"caption\": \"-\",\n\t\t\"id\": \"cscope\" \n\t}," 
+     
+    for key in CSCOPE_SEARCH_MODES:
+        validSetting = VALILD_SETTINGS[key]
+        if validSetting is True:
+            menu_item = menu_item + "\n\t{\n\t\t\"caption\": \"Cscope: " + str(CSCOPE_SEARCH_MODES[key]) + "\"," + \
+                    "\n\t\t\"command\": \"cscope\","                                  + \
+                    "\n\t\t\"args\": {\"mode\": " + str(key) + "}\n\t},"
+    menu_item = menu_item[:-1]
+    menu_item = menu_item + "\n]"
+    
+    #print(menu_item)
+    return menu_item
+
+def write_menu():
+    menu_path = os.path.join(sublime.packages_path(), 'User', 'Context.sublime-menu')
+    print(menu_path)
+    print(sublime.packages_path())
+    menu_content = get_menu_items()
+    with open(menu_path, 'w', encoding='utf8', newline='') as f:
+        f.write(str(menu_content))
+
+def plugin_loaded():
+    write_menu()
+
 def convert_to_system_filepath(filepath):
     platform = "windows"
     CYG_DRIVE = "/cygdrive/"
