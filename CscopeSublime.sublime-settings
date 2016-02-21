@@ -23,7 +23,20 @@
     //
     // Linux and OS X example: "executable": "/usr/bin/cscope"
     // Windows example:        "executable": "C:\\cscope\\cscope.exe"
-    "executable": "cscope"
+    "executable": "cscope",
+
+    // enable if you are using cygwin
+    "using_cygwin": true,
+    
+    "cscope_c_sybmol": true,
+    "cscope_global_definition": true,
+    "cscope_functions_called_by": true,
+    "cscope_functions_calling": true,
+    "cscope_text_string": true,
+    "cscope_egrep_pattern": true,
+    "cscope_file_named": true,
+    "cscope_files_including": true,
+    "cscope_find_assignment": true
 
     // A location for the cscope database - this will be used in preference to any 'found' database
     //"database_location": "D:\\Program Files\\cscope\\cscope.out"

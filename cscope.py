@@ -22,8 +22,10 @@ CSCOPE_SEARCH_MODES = {
     4: "text string",
     6: "egrep pattern",
     7: "file named",
-    8: "files #including this file"
+    8: "files #including this file",
+    9: "Find assignment to this symbol"
 }
+
 
 def get_settings():
     return sublime.load_settings("CscopeSublime.sublime-settings")
@@ -38,6 +40,56 @@ def get_setting(key, default=None, view=None):
     except:
         pass
     return get_settings().get(key, default)
+
+
+def get_menu_items():
+    VALILD_SETTINGS = [
+        get_setting("cscope_c_sybmol"),
+        get_setting("cscope_global_definition"),
+        get_setting("cscope_functions_called_by"),
+        get_setting("cscope_functions_calling"),
+        get_setting("cscope_text_string"),
+        False,
+        get_setting("cscope_egrep_pattern"),
+        get_setting("cscope_file_named"),
+        get_setting("cscope_files_including"),
+        get_setting("cscope_find_assignment")
+    ]
+    menu_item = "[ \n"
+    menu_item = menu_item + "\t{\n\t\t\"caption\": \"-\",\n\t\t\"id\": \"cscope\" \n\t}," 
+     
+    for key in CSCOPE_SEARCH_MODES:
+        validSetting = VALILD_SETTINGS[key]
+        if validSetting is True:
+            menu_item = menu_item + "\n\t{\n\t\t\"caption\": \"Cscope: " + str(CSCOPE_SEARCH_MODES[key]) + "\"," + \
+                    "\n\t\t\"command\": \"cscope\","                                  + \
+                    "\n\t\t\"args\": {\"mode\": " + str(key) + "}\n\t},"
+    menu_item = menu_item[:-1]
+    menu_item = menu_item + "\n]"
+    
+    #print(menu_item)
+    return menu_item
+
+def write_menu():
+    menu_path = os.path.join(sublime.packages_path(), 'User', 'Context.sublime-menu')
+    print(menu_path)
+    print(sublime.packages_path())
+    menu_content = get_menu_items()
+    with open(menu_path, 'w', encoding='utf8', newline='') as f:
+        f.write(str(menu_content))
+
+def plugin_loaded():
+    write_menu()
+
+def convert_to_system_filepath(filepath):
+    platform = "windows"
+    CYG_DRIVE = "/cygdrive/"
+    if platform is "windows" and get_setting("using_cygwin") is True:
+        if filepath.startswith(CYG_DRIVE) :
+            filepath = filepath[len(CYG_DRIVE):]
+            filepath = filepath[0].upper() + ":/" + filepath[2:]
+
+    return filepath
 
 class CscopeVisiter(sublime_plugin.TextCommand):
     def __init__(self, view):
@@ -56,6 +108,7 @@ class CscopeVisiter(sublime_plugin.TextCommand):
                 return
 
             root = m.group(1)
+
             for region in self.view.sel():
                 # Find anything looking like file in whole line at cursor
                 if not region.empty():
@@ -94,6 +147,8 @@ class CscopeVisiter(sublime_plugin.TextCommand):
                     file_line = match_line
 
                 filepath = os.path.join(root, re_match_filepath.group(1))
+                filepath = convert_to_system_filepath(filepath)
+
                 if not ( os.path.isfile(filepath) ):
                     print("Unable to open file: %s" % (filepath))
                     return
@@ -219,6 +274,8 @@ class CscopeSublimeWorker(threading.Thread):
         newline = ''
         if self.platform == "windows":
             newline = '\r\n'
+            if get_setting("using_cygwin") is True:
+                newline = '\n'
         else:
             newline = '\n'
 
@@ -241,8 +298,7 @@ class CscopeSublimeWorker(threading.Thread):
                 sublime.error_message("Cscope ERROR: %s failed!" % cscope_arg_list)
 
         output, erroroutput = proc.communicate()
-        # print output
-        # print erroroutput
+
         try:
             output = str(output, encoding="utf8")
         except TypeError:
@@ -408,7 +464,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
         self.workers = []
 
         symbol = self.view.substr(self.view.word(first_selection))
-        if get_setting("prompt_before_searching") == True:
+        if get_setting("prompt_before_searching") == True or symbol is "":
             sublime.active_window().show_input_panel('Search Cscope for ' + CSCOPE_SEARCH_MODES[self.mode] + ':',
                                                      symbol,
                                                      self.on_search_confirmed,
