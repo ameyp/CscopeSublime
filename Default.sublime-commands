@@ -2,41 +2,46 @@
 	{
 		"caption": "Cscope: Look up symbol",
 		"command": "cscope",
-		"args": {"mode": 0}
+		"args": { "mode": 0 }
 	},
-  {
-    "caption": "Cscope: Look up global definition",
-    "command": "cscope",
-		"args": {"mode": 1}
-  },
-  {
-  	"caption": "Cscope: Look up functions called by this function",
-  	"command": "cscope",
-  	"args": {"mode": 2}
-  },
-  {
-  	"caption": "Cscope: Look up functions calling this function",
-  	"command": "cscope",
-  	"args": { "mode": 3 }
-  },
-  {
-    "caption": "Cscope: Search for text string",
-    "command": "cscope",
-    "args": { "mode": 4 }
-  },
-  {
-    "caption": "Cscope: Search using egrep pattern",
-    "command": "cscope",
-    "args": { "mode": 6 }
-  },
-  {
-    "caption": "Cscope: Find file",
-    "command": "cscope",
-    "args": { "mode": 7 }
-  },
-  {
-    "caption": "Cscope: Find files #including a file",
-    "command": "cscope",
-    "args": { "mode": 8 }
-  }
+	{
+		"caption": "Cscope: Look up global definition",
+		"command": "cscope",
+		"args": { "mode": 1 }
+	},
+	{
+		"caption": "Cscope: Look up functions called by this function",
+		"command": "cscope",
+		"args": { "mode": 2 }
+	},
+	{
+		"caption": "Cscope: Look up functions calling this function",
+		"command": "cscope",
+		"args": { "mode": 3 }
+	},
+	{
+		"caption": "Cscope: Search for text string",
+		"command": "cscope",
+		"args": { "mode": 4 }
+	},
+	{
+		"caption": "Cscope: Search using egrep pattern",
+		"command": "cscope",
+		"args": { "mode": 6 }
+	},
+	{
+		"caption": "Cscope: Find file",
+		"command": "cscope",
+		"args": { "mode": 7 }
+	},
+	{
+		"caption": "Cscope: Find files #including a file",
+		"command": "cscope",
+		"args": { "mode": 8 }
+	},
+	{
+		"caption": "Cscope: Rebuild database",
+		"command": "cscope_database",
+		"args": { "operation": "rebuild" }
+	}
 ]
