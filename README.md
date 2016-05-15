@@ -13,6 +13,8 @@ This plugin supports the majority of the functionality offered by Cscope, namely
 7. Find a given file
 8. Find files #including a given file
 
+This plugin also allows the user to rebuild the Cscope database from inside Sublime Text.
+
 ## Installation
 1. Install Cscope (a Windows port can be found [here](http://code.google.com/p/cscope-win32))
 2. Customize the cscope executable path as explained in the Configuration section below, if needed.
