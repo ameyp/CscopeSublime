@@ -1,0 +1,10 @@
+[
+     {
+         "caption": "Cscope: Rebuild database",
+         "command": "cscope_database",
+         "args": { "operation": "rebuild" }
+     },
+     {
+         "caption": "-", "id": "cscope"
+     }
+ ]
