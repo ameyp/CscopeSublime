@@ -39,6 +39,61 @@ def get_setting(key, default=None, view=None):
         pass
     return get_settings().get(key, default)
 
+
+class CscopeDatabase(sublime_plugin.TextCommand):
+    def __init__(self, view):
+        self.view = view
+        self.root = None
+        self.location = None
+        self.executable = get_setting("executable", "cscope")
+
+    def run(self, edit, operation):
+        self.update_location(self.view.file_name())
+
+        if (operation == "rebuild"):
+            self.rebuild()
+
+    def update_location(self, filename):
+        if get_setting("database_location", "") != "":
+            self.location = get_setting("database_location", "")
+            self.root = os.path.dirname(self.location)
+        else:
+            if (filename):
+                cdir_list = [os.path.dirname(filename)]
+            else:
+                project_info = self.view.window().project_data()
+                cdir_list = [folder['path'] for folder in project_info['folders']]
+
+            for cdir in cdir_list:
+                while cdir != os.path.dirname(cdir):
+                    if ("cscope.out" in os.listdir(cdir)):
+                        self.root = cdir
+                        self.location = os.path.join(cdir, "cscope.out")
+                        print("Database found: ", self.location)
+                        return
+                    cdir = os.path.dirname(cdir)
+
+    def rebuild(self):
+        cscope_arg_list = [self.executable, '-Rbqk']
+        popen_arg_list = {
+            "shell": False,
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.PIPE,
+            "cwd": self.root
+        }
+
+        try:
+            proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
+        except OSError as e:
+            if e.errno == errno.ENOENT:
+                sublime.error_message("Cscope ERROR: cscope binary \"%s\" not found!" % self.executable)
+            else:
+                sublime.error_message("Cscope ERROR: %s failed!" % cscope_arg_list)
+
+        output, erroroutput = proc.communicate()
+        # print output
+        # print erroroutput
+
 class CscopeVisiter(sublime_plugin.TextCommand):
     def __init__(self, view):
         self.view = view
@@ -145,11 +200,10 @@ def getCurrentPosition(view):
 
 
 class CscopeSublimeWorker(threading.Thread):
-    def __init__(self, view, platform, root, database, symbol, mode, executable):
+    def __init__(self, view, platform, database, symbol, mode, executable):
         super(CscopeSublimeWorker, self).__init__()
         self.view = view
         self.platform = platform
-        self.root = root
         self.database = database
         self.symbol = symbol
         self.mode = mode
@@ -163,19 +217,19 @@ class CscopeSublimeWorker(threading.Thread):
             if nested:
                 match_string = ("{0:>6}\n{1:>6} [scope: {2}] {3}").format("..", match["line"], match["scope"], match["instance"])
             else:
-                match_string = ("\n{0}:\n{1:>6} [scope: {2}] {3}").format(match["file"].replace(self.root, "."), match["line"], match["scope"], match["instance"])
+                match_string = ("\n{0}:\n{1:>6} [scope: {2}] {3}").format(match["file"].replace(self.database.root, "."), match["line"], match["scope"], match["instance"])
         elif command_mode == 1:
             if nested:
                 match_string = ("{0:>6}\n{1:>6} {2}").format("..", match["line"], match["instance"])
             else:
-                match_string = ("\n{0}:\n{1:>6} {2}").format(match["file"].replace(self.root, "."), match["line"], match["instance"])
+                match_string = ("\n{0}:\n{1:>6} {2}").format(match["file"].replace(self.database.root, "."), match["line"], match["instance"])
         elif command_mode in [2, 3]:
             if nested:
                 match_string = ("{0:>6}\n{1:>6} [function: {2}] {3}").format("..", match["line"], match["function"], match["instance"])
             else:
-                match_string = ("\n{0}:\n{1:>6} [function: {2}] {3}").format(match["file"].replace(self.root, "."), match["line"], match["function"], match["instance"])
+                match_string = ("\n{0}:\n{1:>6} [function: {2}] {3}").format(match["file"].replace(self.database.root, "."), match["line"], match["function"], match["instance"])
         elif command_mode == 7:
-                match_string = ("\n{0}:").format(match["file"].replace(self.root, "."))
+                match_string = ("\n{0}:").format(match["file"].replace(self.database.root, "."))
 
         return match_string
 
@@ -222,12 +276,12 @@ class CscopeSublimeWorker(threading.Thread):
         else:
             newline = '\n'
 
-        cscope_arg_list = [self.executable, '-dL', '-f', self.database, '-' + str(mode) + word]
+        cscope_arg_list = [self.executable, '-dL', '-f', self.database.location, '-' + str(mode) + word]
         popen_arg_list = {
             "shell": False,
             "stdout": subprocess.PIPE,
             "stderr": subprocess.PIPE,
-            "cwd": self.root
+            "cwd": self.database.root
         }
         if (self.platform == "windows"):
             popen_arg_list["creationflags"] = 0x08000000
@@ -268,7 +322,7 @@ class CscopeSublimeWorker(threading.Thread):
     def run(self):
         matches = self.run_cscope(self.mode, self.symbol)
         self.num_matches = len(matches)
-        self.output = "In folder " + self.root + \
+        self.output = "In folder " + self.database.root + \
             "\nFound " + str(len(matches)) + " matches for " + CSCOPE_SEARCH_MODES[self.mode] + \
              ": " + self.symbol + "\n" + 50*"-" + "\n\n" + "\n".join(matches)
 
@@ -326,26 +380,6 @@ class CscopeCommand(sublime_plugin.TextCommand):
         self.executable = None
         settings = get_settings()
 
-    def update_database(self, filename):
-        if get_setting("database_location", "") != "":
-            self.database = get_setting("database_location", "")
-            self.root = os.path.dirname(self.database)
-        else:
-            if (filename):
-                cdir_list = [os.path.dirname(filename)]
-            else:
-                project_info = self.view.window().project_data()
-                cdir_list = [folder['path'] for folder in project_info['folders']]
-
-            for cdir in cdir_list:
-                while cdir != os.path.dirname(cdir):
-                    if ("cscope.out" in os.listdir(cdir)):
-                        self.root = cdir
-                        self.database = os.path.join(cdir, "cscope.out")
-                        print("Database found: ", self.database)
-                        return
-                    cdir = os.path.dirname(cdir)
-
     def update_status(self, workers, count=0, dir=1):
         count = count + dir
         found = False
@@ -387,9 +421,10 @@ class CscopeCommand(sublime_plugin.TextCommand):
         self.executable = get_setting("executable", "cscope")
 
         if self.database == None:
-            self.update_database(self.view.file_name())
+            self.database = CscopeDatabase(view = self.view)
+            self.database.update_location(self.view.file_name())
 
-            if self.database == None:
+            if self.database.location == None:
                 sublime.error_message("Could not find cscope database: cscope.out")
                 return
 
@@ -421,7 +456,6 @@ class CscopeCommand(sublime_plugin.TextCommand):
         worker = CscopeSublimeWorker(
                 view = self.view,
                 platform = sublime.platform(),
-                root = self.root,
                 database = self.database,
                 symbol = symbol,
                 mode = self.mode,

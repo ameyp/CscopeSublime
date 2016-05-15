@@ -41,7 +41,7 @@
 	},
 	{
 		"caption": "Cscope: Rebuild database",
-		"command": "database",
+		"command": "cscope_database",
 		"args": { "operation": "rebuild" }
 	}
 ]
