@@ -420,13 +420,15 @@ class CscopeCommand(sublime_plugin.TextCommand):
         self.mode = mode
         self.executable = get_setting("executable", "cscope")
 
-        if self.database == None:
-            self.database = CscopeDatabase(view = self.view)
-            self.database.update_location(self.view.file_name())
+        # Create a new database object every time we run. This way, if our user
+        # deleted cscope files or recreated them, we have a correct understanding
+        # of the current state.
+        self.database = CscopeDatabase(view = self.view)
+        self.database.update_location(self.view.file_name())
 
-            if self.database.location == None:
-                sublime.error_message("Could not find cscope database: cscope.out")
-                return
+        if self.database.location == None:
+            sublime.error_message("Could not find cscope database: cscope.out")
+            return
 
         cur_pos = getCurrentPosition(self.view)
         if cur_pos:
