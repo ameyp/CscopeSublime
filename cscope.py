@@ -285,6 +285,7 @@ class CscopeSublimeWorker(threading.Thread):
         }
         if (self.platform == "windows"):
             popen_arg_list["creationflags"] = 0x08000000
+            popen_arg_list["stdin"] = subprocess.PIPE
 
         try:
             proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
