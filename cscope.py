@@ -54,15 +54,20 @@ class CscopeDatabase(sublime_plugin.TextCommand):
             self.rebuild()
 
     def update_location(self, filename):
+        project_info = self.view.window().project_data()
+
         if get_setting("database_location", "") != "":
             self.location = get_setting("database_location", "")
             self.root = os.path.dirname(self.location)
         else:
+            cdir_list = []
             if (filename):
                 cdir_list = [os.path.dirname(filename)]
-            else:
-                project_info = self.view.window().project_data()
+            elif (project_info):
                 cdir_list = [folder['path'] for folder in project_info['folders']]
+            else:
+                print("CscopeDatabase::update_location: No project or filename.")
+                return
 
             for cdir in cdir_list:
                 while cdir != os.path.dirname(cdir):
@@ -91,8 +96,7 @@ class CscopeDatabase(sublime_plugin.TextCommand):
                 sublime.error_message("Cscope ERROR: %s failed!" % cscope_arg_list)
 
         output, erroroutput = proc.communicate()
-        # print output
-        # print erroroutput
+
 
 class CscopeVisiter(sublime_plugin.TextCommand):
     def __init__(self, view):
@@ -293,9 +297,6 @@ class CscopeSublimeWorker(threading.Thread):
                 sublime.error_message("Cscope ERROR: %s failed!" % cscope_arg_list)
 
         output, erroroutput = proc.communicate()
-
-        # print output
-        # print erroroutput
 
         output = output.split(newline)
 
