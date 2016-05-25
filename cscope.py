@@ -66,7 +66,8 @@ class CscopeDatabase(sublime_plugin.TextCommand):
             elif (project_info):
                 cdir_list = [folder['path'] for folder in project_info['folders']]
             else:
-                print("CscopeDatabase::update_location: No project or filename found.")
+                print("CscopeDatabase::update_location: No project or filename.")
+                return
 
             for cdir in cdir_list:
                 while cdir != os.path.dirname(cdir):
