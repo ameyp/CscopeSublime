@@ -54,7 +54,12 @@ class CscopeDatabase(sublime_plugin.TextCommand):
             self.rebuild()
 
     def update_location(self, filename):
-        project_info = self.view.window().project_data()
+        project_info = None
+
+        # project_data is only available in ST3. we need to add this check
+        # to not break our plugin for ST2 users. see also issue #51.
+        if hasattr(self.view.window(), 'project_data'):
+            project_info = self.view.window().project_data()
 
         if get_setting("database_location", "") != "":
             self.location = get_setting("database_location", "")
