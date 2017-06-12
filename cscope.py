@@ -184,6 +184,7 @@ class CscopeVisiter(sublime_plugin.TextCommand):
                 CscopeCommand.add_to_history( getEncodedPosition(filepath, lineno) )
                 sublime.active_window().open_file(filepath + ":" + lineno, sublime.ENCODED_POSITION)
 
+
 class GobackCommand(sublime_plugin.TextCommand):
     def __init__(self, view):
         self.view = view
@@ -196,6 +197,7 @@ class GobackCommand(sublime_plugin.TextCommand):
 
             CscopeCommand.add_to_future( getCurrentPosition(self.view) )
             sublime.active_window().open_file(file_name, sublime.ENCODED_POSITION)
+
 
 class ForwardCommand(sublime_plugin.TextCommand):
     def __init__(self, view):
@@ -347,6 +349,7 @@ class CscopeSublimeSearchWorker(threading.Thread):
         self.output = "In folder " + self.database.root + \
             "\nFound " + str(len(matches)) + " matches for " + CSCOPE_SEARCH_MODES[self.mode] + \
              ": " + self.symbol + "\n" + 50*"-" + "\n\n" + "\n".join(matches)
+
 
 class CscopeCommand(sublime_plugin.TextCommand):
     _backLines = []
