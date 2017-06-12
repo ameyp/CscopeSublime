@@ -1,8 +1,8 @@
 [
      {
          "caption": "Cscope: Rebuild database",
-         "command": "cscope_database",
-         "args": { "operation": "rebuild" }
+         "command": "cscope",
+         "args": { "mode": "database_rebuild" }
      },
      {
          "caption": "-", "id": "cscope"
