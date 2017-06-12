@@ -20,10 +20,12 @@ CSCOPE_SEARCH_MODES = {
     2: "functions called by this function",
     3: "functions calling this function",
     4: "text string",
+    # intentionally not providing 5/Change this text string
     6: "egrep pattern",
     7: "file named",
     8: "files #including this file"
 }
+CSCOPE_CMD_DATABASE_REBUILD = "database_rebuild"
 
 def get_settings():
     return sublime.load_settings("CscopeSublime.sublime-settings")
@@ -40,38 +42,35 @@ def get_setting(key, default=None, view=None):
     return get_settings().get(key, default)
 
 
-class CscopeDatabase(sublime_plugin.TextCommand):
-    def __init__(self, view):
+class CscopeDatabase(object):
+    def __init__(self, view, executable):
         self.view = view
+        self.executable = executable
         self.root = None
         self.location = None
-        self.executable = get_setting("executable", "cscope")
-
-    def run(self, edit, operation):
-        self.update_location(self.view.file_name())
-
-        if (operation == "rebuild"):
-            self.rebuild()
 
     def update_location(self, filename):
         project_info = None
+        project_info_paths = []
 
         # project_data is only available in ST3. we need to add this check
         # to not break our plugin for ST2 users. see also issue #51.
         if hasattr(self.view.window(), 'project_data'):
             project_info = self.view.window().project_data()
+            project_info_paths = [folder['path'] for folder in project_info['folders']]
 
         if get_setting("database_location", "") != "":
             self.location = get_setting("database_location", "")
             self.root = os.path.dirname(self.location)
+            return
         else:
             cdir_list = []
             if (filename):
                 cdir_list = [os.path.dirname(filename)]
             elif (project_info):
-                cdir_list = [folder['path'] for folder in project_info['folders']]
+                cdir_list = project_info_paths
             else:
-                print("CscopeDatabase::update_location: No project or filename.")
+                print('CscopeDatabase: No project or filename.')
                 return
 
             for cdir in cdir_list:
@@ -79,11 +78,23 @@ class CscopeDatabase(sublime_plugin.TextCommand):
                     if ("cscope.out" in os.listdir(cdir)):
                         self.root = cdir
                         self.location = os.path.join(cdir, "cscope.out")
-                        print("Database found: ", self.location)
+                        print('CscopeDatabase: Database found: ', self.location)
                         return
                     cdir = os.path.dirname(cdir)
 
+            # If we haven't found an existing database location and root
+            # directory, and the user has a project defined for this, and
+            # there's only one path in that project, let's just assume that that
+            # path is the root of the project. This should be a safe assumption
+            # and should allow us to create an initial database, if one doesn't
+            # exist, in a sane place.
+            if self.root is None and self.location is None and len(project_info_paths) == 1:
+                self.root = project_info_paths[0]
+                print('CscopeDatabase: Database not found but setting root: {}'
+                      .format(self.root))
+
     def rebuild(self):
+        print('CscopeDatabase: Rebuilding database in directory: {}'.format(self.root))
         cscope_arg_list = [self.executable, '-Rbqk']
         popen_arg_list = {
             "shell": False,
@@ -101,6 +112,7 @@ class CscopeDatabase(sublime_plugin.TextCommand):
                 sublime.error_message("Cscope ERROR: %s failed!" % cscope_arg_list)
 
         output, erroroutput = proc.communicate()
+        print('CscopeDatabase: Rebuild done.')
 
 
 class CscopeVisiter(sublime_plugin.TextCommand):
@@ -172,6 +184,7 @@ class CscopeVisiter(sublime_plugin.TextCommand):
                 CscopeCommand.add_to_history( getEncodedPosition(filepath, lineno) )
                 sublime.active_window().open_file(filepath + ":" + lineno, sublime.ENCODED_POSITION)
 
+
 class GobackCommand(sublime_plugin.TextCommand):
     def __init__(self, view):
         self.view = view
@@ -184,6 +197,7 @@ class GobackCommand(sublime_plugin.TextCommand):
 
             CscopeCommand.add_to_future( getCurrentPosition(self.view) )
             sublime.active_window().open_file(file_name, sublime.ENCODED_POSITION)
+
 
 class ForwardCommand(sublime_plugin.TextCommand):
     def __init__(self, view):
@@ -208,9 +222,18 @@ def getCurrentPosition(view):
         return None
 
 
-class CscopeSublimeWorker(threading.Thread):
+class CscopeSublimeDatabaseRebuildWorker(threading.Thread):
+    def __init__(self, database):
+        super(CscopeSublimeDatabaseRebuildWorker, self).__init__()
+        self.database = database
+
+    def run(self):
+        self.database.rebuild()
+
+
+class CscopeSublimeSearchWorker(threading.Thread):
     def __init__(self, view, platform, database, symbol, mode, executable):
-        super(CscopeSublimeWorker, self).__init__()
+        super(CscopeSublimeSearchWorker, self).__init__()
         self.view = view
         self.platform = platform
         self.database = database
@@ -327,6 +350,7 @@ class CscopeSublimeWorker(threading.Thread):
             "\nFound " + str(len(matches)) + " matches for " + CSCOPE_SEARCH_MODES[self.mode] + \
              ": " + self.symbol + "\n" + 50*"-" + "\n\n" + "\n".join(matches)
 
+
 class CscopeCommand(sublime_plugin.TextCommand):
     _backLines = []
     _forwardLines = []
@@ -379,29 +403,43 @@ class CscopeCommand(sublime_plugin.TextCommand):
         self.view = view
         self.database = None
         self.executable = None
+        self.workers = []
         settings = get_settings()
 
     def update_status(self, workers, count=0, dir=1):
         count = count + dir
-        found = False
+        workInProgress = False
 
         for worker in workers:
             if worker.is_alive():
-                found = True
+                workInProgress = True
                 if count == 7:
                     dir = -1
                 elif count == 0:
                     dir = 1
-                self.view.set_status("CscopeSublime", "Fetching lookup results [%s=%s]" %
-                                    (' ' * count, ' ' * (7 - count)))
+
+                statusSearchers = ""
+                statusRebuilders = ""
+
+                if isinstance(worker, CscopeSublimeSearchWorker):
+                    statusSearchers = "Fetching lookup results. "
+
+                if isinstance(worker, CscopeSublimeDatabaseRebuildWorker):
+                    statusRebuilders = "Rebuilding cross-reference database. "
+
+                self.view.set_status("CscopeSublime",
+                                     "Cscope: {}{}[{}={}]"
+                                     .format(statusSearchers, statusRebuilders,
+                                             ' ' * count, ' ' * (7 - count)))
                 sublime.set_timeout(lambda: self.update_status(workers, count, dir), 100)
                 break
 
-        if not found:
+        if not workInProgress:
             self.view.erase_status("CscopeSublime")
             output = ""
             for worker in workers:
-                self.display_results(worker.symbol, worker.output)
+                if isinstance(worker, CscopeSublimeSearchWorker):
+                    self.display_results(worker.symbol, worker.output)
 
     def display_results(self, symbol, output):
         cscope_view = self.view.window().new_file()
@@ -424,8 +462,13 @@ class CscopeCommand(sublime_plugin.TextCommand):
         # Create a new database object every time we run. This way, if our user
         # deleted cscope files or recreated them, we have a correct understanding
         # of the current state.
-        self.database = CscopeDatabase(view = self.view)
+        self.database = CscopeDatabase(view = self.view,
+                                       executable = self.executable)
         self.database.update_location(self.view.file_name())
+
+        if mode == CSCOPE_CMD_DATABASE_REBUILD:
+            self.rebuild_database()
+            return
 
         if self.database.location == None:
             sublime.error_message("Could not find cscope database: cscope.out")
@@ -443,7 +486,6 @@ class CscopeCommand(sublime_plugin.TextCommand):
         two = first_selection.b
 
         self.view.sel().add(sublime.Region(one, two))
-        self.workers = []
 
         symbol = self.view.substr(self.view.word(first_selection))
         if get_setting("prompt_before_searching") == True:
@@ -456,7 +498,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
             self.on_search_confirmed(symbol)
 
     def on_search_confirmed(self, symbol):
-        worker = CscopeSublimeWorker(
+        worker = CscopeSublimeSearchWorker(
                 view = self.view,
                 platform = sublime.platform(),
                 database = self.database,
@@ -466,8 +508,14 @@ class CscopeCommand(sublime_plugin.TextCommand):
             )
         worker.start()
         self.workers.append(worker)
-
         self.update_status(self.workers)
+
+    def rebuild_database(self):
+        worker = CscopeSublimeDatabaseRebuildWorker(self.database)
+        worker.start()
+        self.workers.append(worker)
+        self.update_status(self.workers)
+
 
 class DisplayCscopeResultsCommand(sublime_plugin.TextCommand):
 
