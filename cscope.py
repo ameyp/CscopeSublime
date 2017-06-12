@@ -403,6 +403,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
         self.view = view
         self.database = None
         self.executable = None
+        self.workers = []
         settings = get_settings()
 
     def update_status(self, workers, count=0, dir=1):
@@ -427,7 +428,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
                     statusRebuilders = "Rebuilding cross-reference database. "
 
                 self.view.set_status("CscopeSublime",
-                                     "{}{}[{}={}]"
+                                     "Cscope: {}{}[{}={}]"
                                      .format(statusSearchers, statusRebuilders,
                                              ' ' * count, ' ' * (7 - count)))
                 sublime.set_timeout(lambda: self.update_status(workers, count, dir), 100)
@@ -485,7 +486,6 @@ class CscopeCommand(sublime_plugin.TextCommand):
         two = first_selection.b
 
         self.view.sel().add(sublime.Region(one, two))
-        self.workers = []
 
         symbol = self.view.substr(self.view.word(first_selection))
         if get_setting("prompt_before_searching") == True:
