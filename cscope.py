@@ -57,7 +57,8 @@ class CscopeDatabase(object):
         # to not break our plugin for ST2 users. see also issue #51.
         if hasattr(self.view.window(), 'project_data'):
             project_info = self.view.window().project_data()
-            project_info_paths = [folder['path'] for folder in project_info['folders']]
+            if project_info and 'folders' in project_info:
+               project_info_paths = [folder['path'] for folder in project_info['folders']]
 
         if get_setting("database_location", "") != "":
             self.location = get_setting("database_location", "")
