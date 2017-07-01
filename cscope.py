@@ -442,6 +442,8 @@ class CscopeCommand(sublime_plugin.TextCommand):
                 if isinstance(worker, CscopeSublimeSearchWorker):
                     self.display_results(worker.symbol, worker.output)
 
+            self.workers = []
+
     def display_results(self, symbol, output):
         cscope_view = self.view.window().new_file()
         cscope_view.set_scratch(True)
