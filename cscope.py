@@ -407,11 +407,11 @@ class CscopeCommand(sublime_plugin.TextCommand):
         self.workers = []
         settings = get_settings()
 
-    def update_status(self, workers, count=0, dir=1):
+    def update_status(self, count=0, dir=1):
         count = count + dir
         workInProgress = False
 
-        for worker in workers:
+        for worker in self.workers:
             if worker.is_alive():
                 workInProgress = True
                 if count == 7:
@@ -432,13 +432,13 @@ class CscopeCommand(sublime_plugin.TextCommand):
                                      "Cscope: {}{}[{}={}]"
                                      .format(statusSearchers, statusRebuilders,
                                              ' ' * count, ' ' * (7 - count)))
-                sublime.set_timeout(lambda: self.update_status(workers, count, dir), 100)
+                sublime.set_timeout(lambda: self.update_status(count, dir), 100)
                 break
 
         if not workInProgress:
             self.view.erase_status("CscopeSublime")
             output = ""
-            for worker in workers:
+            for worker in self.workers:
                 if isinstance(worker, CscopeSublimeSearchWorker):
                     self.display_results(worker.symbol, worker.output)
 
@@ -511,13 +511,13 @@ class CscopeCommand(sublime_plugin.TextCommand):
             )
         worker.start()
         self.workers.append(worker)
-        self.update_status(self.workers)
+        self.update_status()
 
     def rebuild_database(self):
         worker = CscopeSublimeDatabaseRebuildWorker(self.database)
         worker.start()
         self.workers.append(worker)
-        self.update_status(self.workers)
+        self.update_status()
 
 
 class DisplayCscopeResultsCommand(sublime_plugin.TextCommand):
