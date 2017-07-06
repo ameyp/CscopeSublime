@@ -50,6 +50,8 @@ class CscopeDatabase(object):
         self.location = None
 
     def update_location(self, filename):
+        self.root = None
+        self.location = None
         project_info = None
         project_info_paths = []
 
@@ -60,9 +62,46 @@ class CscopeDatabase(object):
             if project_info and 'folders' in project_info:
                project_info_paths = [folder['path'] for folder in project_info['folders']]
 
-        if get_setting("database_location", "") != "":
-            self.location = get_setting("database_location", "")
-            self.root = os.path.dirname(self.location)
+        # if the user provided database_location, validate it before using it
+        database_location = get_setting('database_location')
+
+        if database_location:
+            print('CScopeDatabase: user provided database_location: {}'
+                  .format(database_location))
+
+            # if it's not a string, it's not valid
+            if not isinstance(database_location, str):
+                sublime.error_message('Cscope: Invalid database_location: {}'
+                                      .format(database_location))
+                return
+
+            # expand user directory if it was used
+            if database_location.startswith('~'):
+                database_location = os.path.expanduser(database_location)
+
+            # if the user-provided database does not end with "cscope.out", this
+            # is an invalid location
+            if not database_location.endswith('cscope.out'):
+                sublime.error_message('Cscope: Invalid database_location: {}. '
+                                      'Filename must end with cscope.out.'
+                                      .format(database_location))
+                return
+
+            database_location_dir = os.path.dirname(database_location)
+
+            # the directory _must_ exist because we use this as cwd for subprocess
+            # commands
+            if not os.path.isdir(database_location_dir):
+                sublime.error_message('Cscope: Invalid database_location: {}. '
+                                      'Directory does not exist.'
+                                      .format(database_location))
+                return
+
+            self.location = database_location
+            self.root = database_location_dir
+
+            print('CScopeDatabase: using location: {}, root: {}'
+                  .format(self.location, self.root))
             return
         else:
             cdir_list = []
@@ -95,6 +134,11 @@ class CscopeDatabase(object):
                       .format(self.root))
 
     def rebuild(self):
+        if not (self.root and os.path.isdir(self.root)):
+            sublime.error_message('Cscope: No working directory found. '
+                                  'Unable to rebuild database.')
+            return
+
         print('CscopeDatabase: Rebuilding database in directory: {}'.format(self.root))
         cscope_arg_list = [self.executable, '-Rbqk']
         popen_arg_list = {
