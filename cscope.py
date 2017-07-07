@@ -139,8 +139,16 @@ class CscopeDatabase(object):
                                   'Unable to rebuild database.')
             return
 
-        print('CscopeDatabase: Rebuilding database in directory: {}'.format(self.root))
-        cscope_arg_list = [self.executable, '-Rbqk']
+        cscope_arg_list = get_setting('database_build_command')
+
+        # If the user provided a custom command to build their cscope database,
+        # use it, otherwise use a hopefully sane default
+        if not (cscope_arg_list and isinstance(cscope_arg_list, list)):
+            cscope_arg_list = [self.executable, '-Rbq']
+
+        print('CscopeDatabase: Rebuilding database in directory: {}, using command: {}'
+              .format(self.root, cscope_arg_list))
+
         popen_arg_list = {
             "shell": False,
             "stdout": subprocess.PIPE,

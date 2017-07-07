@@ -23,8 +23,12 @@
     //
     // Linux and OS X example: "executable": "/usr/bin/cscope"
     // Windows example:        "executable": "C:\\cscope\\cscope.exe"
-    "executable": "cscope"
+    "executable": "cscope",
 
     // A location for the cscope database - this will be used in preference to any 'found' database
-    //"database_location": "D:\\Program Files\\cscope\\cscope.out"
+    //"database_location": "D:\\Program Files\\cscope\\cscope.out",
+
+    // An optional custom command used to build cscope's database.
+    // This must be in array format.
+    //"database_build_command": [ "cscope-indexer", "-r" ],
 }
