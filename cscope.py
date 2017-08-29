@@ -159,10 +159,8 @@ class CscopeDatabase(object):
         try:
             proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
         except OSError as e:
-            if e.errno == errno.ENOENT:
-                sublime.error_message("Cscope ERROR: cscope binary \"%s\" not found!" % self.executable)
-            else:
-                sublime.error_message("Cscope ERROR: %s failed!" % cscope_arg_list)
+            sublime.error_message('Cscope ERROR. Command: {} failed! Error: {}'
+                                  .format(cscope_arg_list, e))
 
         output, erroroutput = proc.communicate()
         print('CscopeDatabase: Rebuild done.')
@@ -372,10 +370,8 @@ class CscopeSublimeSearchWorker(threading.Thread):
         try:
             proc = subprocess.Popen(cscope_arg_list, **popen_arg_list)
         except OSError as e:
-            if e.errno == errno.ENOENT:
-                sublime.error_message("Cscope ERROR: cscope binary \"%s\" not found!" % self.executable)
-            else:
-                sublime.error_message("Cscope ERROR: %s failed!" % cscope_arg_list)
+            sublime.error_message('Cscope ERROR. Command: {} failed! Error: {}'
+                                  .format(cscope_arg_list, e))
 
         output, erroroutput = proc.communicate()
 
