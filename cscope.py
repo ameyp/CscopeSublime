@@ -26,6 +26,7 @@ CSCOPE_SEARCH_MODES = {
     8: "files #including this file"
 }
 CSCOPE_CMD_DATABASE_REBUILD = "database_rebuild"
+CSCOPE_CMD_CLOSE_OPENED = "close_opened_results"
 
 def get_settings():
     return sublime.load_settings("CscopeSublime.sublime-settings")
@@ -546,6 +547,10 @@ class CscopeCommand(sublime_plugin.TextCommand):
         cscope_view.settings().set('cscope_results_sel', 0)
 
     def run(self, edit, mode):
+        if mode == CSCOPE_CMD_CLOSE_OPENED:
+            [x.close() for x in self.view.window().views() if x.settings().get('cscope_results')]
+            return
+
         self.mode = mode
         self.executable = get_setting("executable", "cscope")
 
@@ -646,7 +651,3 @@ class UpdateCscopeResultSelection(sublime_plugin.ViewEventListener):
             if x.contains(mouse_point):
                 update_result_selection(self.view, r.index(x), x)
                 break
-
-class CloseCscopeTabsCommand(sublime_plugin.TextCommand):
-    def run(self, edit):
-        [x.close() for x in self.view.window().views() if x.settings().get('cscope_results')]

@@ -43,5 +43,10 @@
 		"caption": "Cscope: Rebuild database",
 		"command": "cscope",
 		"args": { "mode": "database_rebuild" }
+	},
+    {
+		"caption": "Cscope: Close all opened results",
+		"command": "cscope",
+		"args": { "mode": "close_opened_results" }
 	}
 ]

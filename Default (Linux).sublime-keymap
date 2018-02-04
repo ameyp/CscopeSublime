@@ -87,7 +87,14 @@
         ],
         "args": {"direction": "down2"}
     },
-    { "keys": ["ctrl+l", "ctrl+x"], "command": "close_cscope_tabs"},
+    { "keys": ["ctrl+l", "ctrl+x"], 
+        "command": "cscope",
+        "args": { "mode": "close_opened_results" }
+    },
+    { "keys": ["ctrl+l", "ctrl+f"], 
+        "command": "cscope",
+        "args": { "mode": "database_rebuild" }
+    },
     {
 	"keys": ["ctrl+shift+["],
     	"command": "goback"
