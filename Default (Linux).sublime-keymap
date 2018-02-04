@@ -52,6 +52,43 @@
         "context": [{"key": "selector", "operand": "text.find-in-files"}]
     },
     {
+        "keys": ["j"],
+        "command": "cscope_visiter",
+        "context": [
+            {"key": "selector", "operand": "text.find-in-files"},
+            {"key": "setting.cscope_results"}
+        ],
+        "args": {"direction": "down"}
+    },
+    {
+        "keys": ["k"],
+        "command": "cscope_visiter",
+        "context": [
+            {"key": "selector", "operand": "text.find-in-files"},
+            {"key": "setting.cscope_results"}
+        ],
+        "args": {"direction": "up"}
+    },
+    {
+        "keys": ["pageup"],
+        "command": "cscope_visiter",
+        "context": [
+            {"key": "selector", "operand": "text.find-in-files"},
+            {"key": "setting.cscope_results"}
+        ],
+        "args": {"direction": "up2"}
+    },
+    {
+        "keys": ["pagedown"],
+        "command": "cscope_visiter",
+        "context": [
+            {"key": "selector", "operand": "text.find-in-files"},
+            {"key": "setting.cscope_results"}
+        ],
+        "args": {"direction": "down2"}
+    },
+    { "keys": ["ctrl+l", "ctrl+x"], "command": "close_cscope_tabs"},
+    {
 	"keys": ["ctrl+shift+["],
     	"command": "goback"
     },

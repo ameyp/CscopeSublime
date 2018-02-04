@@ -41,6 +41,13 @@ def get_setting(key, default=None, view=None):
         pass
     return get_settings().get(key, default)
 
+def update_result_selection(view, selection_index, selection):
+    view.settings().set('cscope_results_sel', selection_index)
+    view.add_regions('selection', [selection], 'comment', 'dot')
+    view.show(selection)
+    view.sel().clear()
+    view.sel().add(sublime.Region(selection.a, selection.a))
+
 
 class CscopeDatabase(object):
     def __init__(self, view, executable):
@@ -170,10 +177,32 @@ class CscopeVisiter(sublime_plugin.TextCommand):
     def __init__(self, view):
         self.view = view
 
-    def run(self, edit):
+    def run(self, edit, **args):
         if self.view.settings().get('syntax') == CSCOPE_SYNTAX_FILE:
+            if args.get('direction'):
+                d = args.get('direction')
+                r = self.view.get_regions('results')
+                if r == []:
+                    return
+                view_height = len(r) - 1
+                s = self.view.settings().get('cscope_results_sel')
+                what = {
+                    'up': -1,
+                    'down': 1,
+                    'up2': -20,
+                    'down2': 20
+                }
+                if d not in what:
+                    return
+                s = s + what[d]
+                if s < 0: s = 0
+                if s > view_height: s = view_height
+
+                update_result_selection(self.view, s, r[s])
+                return
+
             root_re = re.compile(r'In folder (.+)')
-            filepath_re = re.compile(r'^(.+):$')
+            filepath_re = re.compile(r'^(((?!scope: ).)+):$')
             filename_re = re.compile(r'([a-zA-Z0-9_\-\.]+):')
             linenum_re = re.compile(r'^\s*([0-9]+)')
 
@@ -295,24 +324,31 @@ class CscopeSublimeSearchWorker(threading.Thread):
     # switch statement for the different formatted output
     # of Cscope's matches.
     def append_match_string(self, match, command_mode, nested):
-        match_string = "{0}".format(match["file"])
+        match_string = {}
+        match_string['main'] = "{0}".format(match["file"])
         if command_mode in [0, 4, 6, 8]:
             if nested:
-                match_string = ("{0:>6}\n{1:>6} [scope: {2}] {3}").format("..", match["line"], match["scope"], match["instance"])
+                match_string['head'] = ("{0:>6}\n").format("..")
+                match_string['main'] = ("{0:>6} [scope: {1}] {2}").format(match["line"], match["scope"], match["instance"])
             else:
-                match_string = ("\n{0}:\n{1:>6} [scope: {2}] {3}").format(match["file"].replace(self.database.root, "."), match["line"], match["scope"], match["instance"])
+                match_string['head'] = ("\n{0}:\n").format(match["file"].replace(self.database.root, "."))
+                match_string['main'] = ("{0:>6} [scope: {1}] {2}").format(match["line"], match["scope"], match["instance"])
         elif command_mode == 1:
             if nested:
-                match_string = ("{0:>6}\n{1:>6} {2}").format("..", match["line"], match["instance"])
+                match_string['head'] = ("{0:>6}\n").format("..")
+                match_string['main'] = ("{0:>6} {1}").format(match["line"], match["instance"])
             else:
-                match_string = ("\n{0}:\n{1:>6} {2}").format(match["file"].replace(self.database.root, "."), match["line"], match["instance"])
+                match_string['head'] = ("\n{0}:\n").format(match["file"].replace(self.database.root, "."))
+                match_string['main'] = ("{0:>6} {1}").format(match["line"], match["instance"])
         elif command_mode in [2, 3]:
             if nested:
-                match_string = ("{0:>6}\n{1:>6} [function: {2}] {3}").format("..", match["line"], match["function"], match["instance"])
+                match_string['head'] = ("{0:>6}\n").format("..")
+                match_string['main'] = ("{0:>6} [function: {1}] {2}").format(match["line"], match["function"], match["instance"])
             else:
-                match_string = ("\n{0}:\n{1:>6} [function: {2}] {3}").format(match["file"].replace(self.database.root, "."), match["line"], match["function"], match["instance"])
+                match_string['head'] = ("\n{0}:\n").format(match["file"].replace(self.database.root, "."))
+                match_string['main'] = ("{0:>6} [function: {1}] {2}").format(match["line"], match["function"], match["instance"])
         elif command_mode == 7:
-                match_string = ("\n{0}:").format(match["file"].replace(self.database.root, "."))
+                match_string['main'] = ("\n{0}:").format(match["file"].replace(self.database.root, "."))
 
         return match_string
 
@@ -395,9 +431,10 @@ class CscopeSublimeSearchWorker(threading.Thread):
     def run(self):
         matches = self.run_cscope(self.mode, self.symbol)
         self.num_matches = len(matches)
-        self.output = "In folder " + self.database.root + \
+        header = "In folder " + self.database.root + \
             "\nFound " + str(len(matches)) + " matches for " + CSCOPE_SEARCH_MODES[self.mode] + \
-             ": " + self.symbol + "\n" + 50*"-" + "\n\n" + "\n".join(matches)
+            ": " + self.symbol + "\n" + 50*"-" + "\n"
+        self.output = [ header, matches ]
 
 
 class CscopeCommand(sublime_plugin.TextCommand):
@@ -505,6 +542,8 @@ class CscopeCommand(sublime_plugin.TextCommand):
 
         cscope_view.set_syntax_file(CSCOPE_SYNTAX_FILE)
         cscope_view.set_read_only(True)
+        cscope_view.settings().set('cscope_results', True)
+        cscope_view.settings().set('cscope_results_sel', 0)
 
     def run(self, edit, mode):
         self.mode = mode
@@ -571,7 +610,43 @@ class CscopeCommand(sublime_plugin.TextCommand):
 class DisplayCscopeResultsCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
-        self.view.insert(edit, CscopeCommand.cscope_output_info['pos'], CscopeCommand.cscope_output_info['text'])
+        r = []
+        header, matches = CscopeCommand.cscope_output_info['text']
+        self.view.insert(edit, CscopeCommand.cscope_output_info['pos'], header)
+        for m in matches:
+            head = '\n' + m['head']
+            start = self.view.size()
+            self.view.insert(edit, start, head)
+            start = self.view.size()
+            self.view.insert(edit, start, m['main'])
+            region = sublime.Region(start, self.view.size())
+            r.append(region)
+        self.view.add_regions('results', r)
+        if r: update_result_selection(self.view, 0, r[0])
         if get_setting("display_outline") == True:
             symbol_regions = self.view.find_all(CscopeCommand.cscope_output_info['symbol'], sublime.LITERAL)
-            self.view.add_regions('cscopesublime-outlines', symbol_regions[1:], "text.find-in-files", "", sublime.DRAW_OUTLINED)
+            self.view.add_regions('cscopesublime-outlines', symbol_regions[1:], "entity.name.filename.find-in-files", "", sublime.DRAW_OUTLINED)
+
+class UpdateCscopeResultSelection(sublime_plugin.ViewEventListener):
+    def __init__(self, *args, **kwargs):
+        super(UpdateCscopeResultSelection, self).__init__(*args, **kwargs)
+        self.mouse_point = -1
+
+    @classmethod
+    def is_applicable(cls, settings):
+        return settings.get('cscope_results')
+
+    def on_selection_modified(self):
+        mouse_point = self.view.sel()[0].a
+        if mouse_point == self.mouse_point:
+            return
+        self.mouse_point = mouse_point
+        r = self.view.get_regions('results')
+        for x in r:
+            if x.contains(mouse_point):
+                update_result_selection(self.view, r.index(x), x)
+                break
+
+class CloseCscopeTabsCommand(sublime_plugin.TextCommand):
+    def run(self, edit):
+        [x.close() for x in self.view.window().views() if x.settings().get('cscope_results')]
