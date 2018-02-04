@@ -155,6 +155,14 @@ class CscopeDatabase(object):
         if not (cscope_arg_list and isinstance(cscope_arg_list, list)):
             cscope_arg_list = [self.executable, '-Rbq']
 
+            # If the user has a project with more than one path and we're putting 
+            # the database in the first one, treat other paths as additional source dirs
+            if get_setting('auto_next_source_dirs') and hasattr(self.view.window(), 'project_data'):
+                project_info = self.view.window().project_data()
+                if project_info and 'folders' in project_info and project_info['folders'][0]['path'] == self.root:
+                    for folder in project_info['folders'][1:]:
+                        cscope_arg_list += ["-s", folder['path']]
+
         print('CscopeDatabase: Rebuilding database in directory: {}, using command: {}'
               .format(self.root, cscope_arg_list))
 
