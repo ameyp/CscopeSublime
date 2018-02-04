@@ -42,12 +42,13 @@ def get_setting(key, default=None, view=None):
         pass
     return get_settings().get(key, default)
 
-def update_result_selection(view, selection_index, selection):
+def update_result_selection(view, selection_index, selection, update_sel=True):
     view.settings().set('cscope_results_sel', selection_index)
     view.add_regions('selection', [selection], 'comment', 'dot')
     view.show(selection)
-    view.sel().clear()
-    view.sel().add(sublime.Region(selection.a, selection.a))
+    if update_sel:
+        view.sel().clear()
+        view.sel().add(sublime.Region(selection.a, selection.a))
 
 
 class CscopeDatabase(object):
@@ -649,5 +650,5 @@ class UpdateCscopeResultSelection(sublime_plugin.ViewEventListener):
         r = self.view.get_regions('results')
         for x in r:
             if x.contains(mouse_point):
-                update_result_selection(self.view, r.index(x), x)
+                update_result_selection(self.view, r.index(x), x, False)
                 break
