@@ -131,11 +131,11 @@ class CscopeDatabase(object):
 
             # If we haven't found an existing database location and root
             # directory, and the user has a project defined for this, and
-            # there's only one path in that project, let's just assume that that
+            # there's one or more paths in that project, let's just assume that first
             # path is the root of the project. This should be a safe assumption
             # and should allow us to create an initial database, if one doesn't
             # exist, in a sane place.
-            if self.root is None and self.location is None and len(project_info_paths) == 1:
+            if self.root is None and self.location is None and len(project_info_paths) >= 1:
                 self.root = project_info_paths[0]
                 print('CscopeDatabase: Database not found but setting root: {}'
                       .format(self.root))
