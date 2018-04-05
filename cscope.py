@@ -291,6 +291,7 @@ class CscopeSublimeSearchWorker(threading.Thread):
         self.symbol = symbol
         self.mode = mode
         self.executable = executable
+        self.output = ""
 
     # switch statement for the different formatted output
     # of Cscope's matches.
