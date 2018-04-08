@@ -52,50 +52,6 @@
         "context": [{"key": "selector", "operand": "text.find-in-files"}]
     },
     {
-        "keys": ["j"],
-        "command": "cscope_visiter",
-        "context": [
-            {"key": "selector", "operand": "text.find-in-files"},
-            {"key": "setting.cscope_results"}
-        ],
-        "args": {"direction": "down"}
-    },
-    {
-        "keys": ["k"],
-        "command": "cscope_visiter",
-        "context": [
-            {"key": "selector", "operand": "text.find-in-files"},
-            {"key": "setting.cscope_results"}
-        ],
-        "args": {"direction": "up"}
-    },
-    {
-        "keys": ["pageup"],
-        "command": "cscope_visiter",
-        "context": [
-            {"key": "selector", "operand": "text.find-in-files"},
-            {"key": "setting.cscope_results"}
-        ],
-        "args": {"direction": "pageup"}
-    },
-    {
-        "keys": ["pagedown"],
-        "command": "cscope_visiter",
-        "context": [
-            {"key": "selector", "operand": "text.find-in-files"},
-            {"key": "setting.cscope_results"}
-        ],
-        "args": {"direction": "pagedown"}
-    },
-    { "keys": ["ctrl+l", "ctrl+x"], 
-        "command": "cscope",
-        "args": { "mode": "close_opened_results" }
-    },
-    { "keys": ["ctrl+l", "ctrl+f"], 
-        "command": "cscope",
-        "args": { "mode": "database_rebuild" }
-    },
-    {
 	"keys": ["ctrl+shift+["],
     	"command": "goback"
     },
