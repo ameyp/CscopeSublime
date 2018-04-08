@@ -34,5 +34,5 @@
 
     // On default build command, whether to treat folders in project (after the 1st one) as
     // additional source directories
-    "auto_next_source_dirs": false,
+    "auto_next_source_dirs": false
 }

@@ -43,9 +43,13 @@ def get_setting(key, default=None, view=None):
     return get_settings().get(key, default)
 
 def update_result_selection(view, selection_index, selection, update_sel=True):
+    # Set index of new selection, highlight it and move view to it
     view.settings().set('cscope_results_sel', selection_index)
+    if view.get_regions('selection'):
+        # Do not scroll view on first open (prevents glitch on ST2)
+        view.show(selection)
     view.add_regions('selection', [selection], 'comment', 'dot')
-    view.show(selection)
+    # Update cursor position to new result
     if update_sel:
         view.sel().clear()
         view.sel().add(sublime.Region(selection.a, selection.a))
@@ -189,6 +193,7 @@ class CscopeVisiter(sublime_plugin.TextCommand):
 
     def run(self, edit, **args):
         if self.view.settings().get('syntax') == CSCOPE_SYNTAX_FILE:
+            # Handle keyboard navigation
             if args.get('direction'):
                 d = args.get('direction')
                 r = self.view.get_regions('results')
@@ -199,8 +204,8 @@ class CscopeVisiter(sublime_plugin.TextCommand):
                 what = {
                     'up': -1,
                     'down': 1,
-                    'up2': -20,
-                    'down2': 20
+                    'pageup': -20,
+                    'pagedown': 20
                 }
                 if d not in what:
                     return
@@ -334,30 +339,34 @@ class CscopeSublimeSearchWorker(threading.Thread):
     # switch statement for the different formatted output
     # of Cscope's matches.
     def append_match_string(self, match, command_mode, nested):
+        # 'head': contains file name or separator '..'
+        # 'main': contains main line with result of lookup
         match_string = {}
         match_string['main'] = "{0}".format(match["file"])
+        result_separator = ("{0:>6}\n").format("..")
         if command_mode in [0, 4, 6, 8]:
             if nested:
-                match_string['head'] = ("{0:>6}\n").format("..")
+                match_string['head'] = result_separator
                 match_string['main'] = ("{0:>6} [scope: {1}] {2}").format(match["line"], match["scope"], match["instance"])
             else:
                 match_string['head'] = ("\n{0}:\n").format(match["file"].replace(self.database.root, "."))
                 match_string['main'] = ("{0:>6} [scope: {1}] {2}").format(match["line"], match["scope"], match["instance"])
         elif command_mode == 1:
             if nested:
-                match_string['head'] = ("{0:>6}\n").format("..")
+                match_string['head'] = result_separator
                 match_string['main'] = ("{0:>6} {1}").format(match["line"], match["instance"])
             else:
                 match_string['head'] = ("\n{0}:\n").format(match["file"].replace(self.database.root, "."))
                 match_string['main'] = ("{0:>6} {1}").format(match["line"], match["instance"])
         elif command_mode in [2, 3]:
             if nested:
-                match_string['head'] = ("{0:>6}\n").format("..")
+                match_string['head'] = result_separator
                 match_string['main'] = ("{0:>6} [function: {1}] {2}").format(match["line"], match["function"], match["instance"])
             else:
                 match_string['head'] = ("\n{0}:\n").format(match["file"].replace(self.database.root, "."))
                 match_string['main'] = ("{0:>6} [function: {1}] {2}").format(match["line"], match["function"], match["instance"])
         elif command_mode == 7:
+                match_string['head'] = ''
                 match_string['main'] = ("\n{0}:").format(match["file"].replace(self.database.root, "."))
 
         return match_string
@@ -624,39 +633,43 @@ class CscopeCommand(sublime_plugin.TextCommand):
 class DisplayCscopeResultsCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
-        r = []
+        results = [] # results regions
         header, matches = CscopeCommand.cscope_output_info['text']
         self.view.insert(edit, CscopeCommand.cscope_output_info['pos'], header)
         for m in matches:
+            # insert header/file name
             head = '\n' + m['head']
             start = self.view.size()
             self.view.insert(edit, start, head)
+            # insert line with result
             start = self.view.size()
             self.view.insert(edit, start, m['main'])
+            # get and save region of line with result
             region = sublime.Region(start, self.view.size())
-            r.append(region)
-        self.view.add_regions('results', r)
-        if r: update_result_selection(self.view, 0, r[0])
+            results.append(region)
+        self.view.add_regions('results', results)
+        if results: update_result_selection(self.view, 0, results[0])
         if get_setting("display_outline") == True:
             symbol_regions = self.view.find_all(CscopeCommand.cscope_output_info['symbol'], sublime.LITERAL)
             self.view.add_regions('cscopesublime-outlines', symbol_regions[1:], "entity.name.filename.find-in-files", "", sublime.DRAW_OUTLINED)
 
-class UpdateCscopeResultSelection(sublime_plugin.ViewEventListener):
-    def __init__(self, *args, **kwargs):
-        super(UpdateCscopeResultSelection, self).__init__(*args, **kwargs)
-        self.mouse_point = -1
+if sublime.version()[0] >= '3':
+    class UpdateCscopeResultSelection(sublime_plugin.ViewEventListener):
+        def __init__(self, *args, **kwargs):
+            super(UpdateCscopeResultSelection, self).__init__(*args, **kwargs)
+            self.mouse_point = -1
 
-    @classmethod
-    def is_applicable(cls, settings):
-        return settings.get('cscope_results')
+        @classmethod
+        def is_applicable(cls, settings):
+            return settings.get('cscope_results')
 
-    def on_selection_modified(self):
-        mouse_point = self.view.sel()[0].a
-        if mouse_point == self.mouse_point:
-            return
-        self.mouse_point = mouse_point
-        r = self.view.get_regions('results')
-        for x in r:
-            if x.contains(mouse_point):
-                update_result_selection(self.view, r.index(x), x, False)
-                break
+        def on_selection_modified(self):
+            mouse_point = self.view.sel()[0].a
+            if mouse_point == self.mouse_point:
+                return
+            self.mouse_point = mouse_point
+            r = self.view.get_regions('results')
+            for x in r:
+                if x.contains(mouse_point):
+                    update_result_selection(self.view, r.index(x), x, False)
+                    break

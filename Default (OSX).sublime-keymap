@@ -76,7 +76,7 @@
             {"key": "selector", "operand": "text.find-in-files"},
             {"key": "setting.cscope_results"}
         ],
-        "args": {"direction": "up2"}
+        "args": {"direction": "pageup"}
     },
     {
         "keys": ["pagedown"],
@@ -85,7 +85,7 @@
             {"key": "selector", "operand": "text.find-in-files"},
             {"key": "setting.cscope_results"}
         ],
-        "args": {"direction": "down2"}
+        "args": {"direction": "pagedown"}
     },
     { "keys": ["super+l", "super+x"], 
         "command": "cscope",
