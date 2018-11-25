@@ -1,3 +1,9 @@
+# NOTICE
+
+Looking for a new maintainer for CscopeSublime! Both of our current maintainers are no longer able to contribute actively to this plugin. If you care about CscopeSublime and would love to see it taken care of as much as we would, please reach out to us and let us know via an issue report.
+
+Alternately, here are a list of forks of this repo that might perhaps be actively maintained: https://github.com/ameyp/CscopeSublime/network/members
+
 # Cscope
 A plugin to use Cscope for code navigation from inside Sublime Text 2 and 3.
 
