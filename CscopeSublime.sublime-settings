@@ -31,4 +31,8 @@
     // An optional custom command used to build cscope's database.
     // This must be in array format.
     //"database_build_command": [ "cscope-indexer", "-r" ],
+
+    // On default build command, whether to treat folders in project (after the 1st one) as
+    // additional source directories
+    "auto_next_source_dirs": false
 }
