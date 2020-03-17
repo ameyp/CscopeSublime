@@ -23,10 +23,18 @@
     //
     // Linux and OS X example: "executable": "/usr/bin/cscope"
     // Windows example:        "executable": "C:\\cscope\\cscope.exe"
+    //
+    // Can also be a list, for example: "executable": ["wsl", "cscope"]
     "executable": "cscope",
 
-    // A location for the cscope database - this will be used in preference to any 'found' database
+    // A location for the cscope database - this will be used in preference
+    // to any 'found' database
     //"database_location": "D:\\Program Files\\cscope\\cscope.out",
+
+    // An alternate DB path to use when invoking a search. This can used
+    // when the search functionality does not understand certain filesystems.
+    // Not yet implemented for build. For example, using cscope inside WSL:
+    //"search_db_alternate_path": "/mnt/d/Users/foo/src/cscope.out"
 
     // An optional custom command used to build cscope's database.
     // This must be in array format.

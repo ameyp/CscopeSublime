@@ -144,7 +144,7 @@ class CscopeDatabase(object):
         # If the user provided a custom command to build their cscope database,
         # use it, otherwise use a hopefully sane default
         if not (cscope_arg_list and isinstance(cscope_arg_list, list)):
-            cscope_arg_list = [self.executable, '-Rbq']
+            cscope_arg_list = self.executable + ['-Rbq']
 
         print('CscopeDatabase: Rebuilding database in directory: {}, using command: {}'
               .format(self.root, cscope_arg_list))
@@ -283,7 +283,7 @@ class CscopeSublimeDatabaseRebuildWorker(threading.Thread):
 
 
 class CscopeSublimeSearchWorker(threading.Thread):
-    def __init__(self, view, platform, database, symbol, mode, executable):
+    def __init__(self, view, platform, database, symbol, mode, executable, search_db_alternate_path):
         super(CscopeSublimeSearchWorker, self).__init__()
         self.view = view
         self.platform = platform
@@ -291,6 +291,7 @@ class CscopeSublimeSearchWorker(threading.Thread):
         self.symbol = symbol
         self.mode = mode
         self.executable = executable
+        self.search_db_alternate_path = search_db_alternate_path
         self.output = ""
 
     # switch statement for the different formatted output
@@ -356,7 +357,8 @@ class CscopeSublimeSearchWorker(threading.Thread):
     def run_cscope(self, mode, word):
         newline = '\n'
 
-        cscope_arg_list = [self.executable, '-dL', '-f', self.database.location, '-' + str(mode) + word]
+        db = self.search_db_alternate_path or self.database.location
+        cscope_arg_list = self.executable + ['-dL', '-f', db, '-' + str(mode) + word]
         popen_arg_list = {
             "shell": False,
             "stdout": subprocess.PIPE,
@@ -453,6 +455,7 @@ class CscopeCommand(sublime_plugin.TextCommand):
         self.view = view
         self.database = None
         self.executable = None
+        self.exectuable_db_location = None
         self.workers = []
         settings = get_settings()
 
@@ -510,6 +513,12 @@ class CscopeCommand(sublime_plugin.TextCommand):
     def run(self, edit, mode):
         self.mode = mode
         self.executable = get_setting("executable", "cscope")
+        self.search_db_alternate_path = get_setting("search_db_alternate_path", None)
+
+        # Support executables requiring addition options, such as
+        # ["wsl", "cscope"] on Windows.
+        if not isinstance(self.executable, list):
+            self.executable = [self.executable]
 
         # Create a new database object every time we run. This way, if our user
         # deleted cscope files or recreated them, we have a correct understanding
@@ -556,7 +565,8 @@ class CscopeCommand(sublime_plugin.TextCommand):
                 database = self.database,
                 symbol = symbol,
                 mode = self.mode,
-                executable = self.executable
+                executable = self.executable,
+                search_db_alternate_path = self.search_db_alternate_path,
             )
         worker.start()
         self.workers.append(worker)
