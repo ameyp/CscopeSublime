@@ -489,9 +489,56 @@ class CscopeCommand(sublime_plugin.TextCommand):
             output = ""
             for worker in self.workers:
                 if isinstance(worker, CscopeSublimeSearchWorker):
-                    self.display_results(worker.symbol, worker.output)
+                    #self.display_results(worker.symbol, worker.output)
+                    self.display_results_quick_panel(worker.matches)
 
             self.workers = []
+
+    def display_results_quick_panel(self, matches):
+        root = os.path.dirname(self.database.location)
+        window = self.view.window()
+
+        temp_view = None
+        close_temp_view = True
+        active_view = window.active_view()
+        active_viewport = active_view.viewport_position()
+        initial_views = window.views()
+
+        def jump(match):
+            global temp_view
+            fname = os.path.normpath(os.path.join(root, match['file']))
+            position = '%s:%d:0' % (fname, int(match['line']))
+            flags = sublime.ENCODED_POSITION
+            prev_temp_view = temp_view
+            temp_view = window.open_file(position, flags)
+            if prev_temp_view not in initial_views and prev_temp_view != temp_view:
+                prev_temp_view.close()
+
+        def on_select(index):
+            global temp_view
+            if index == -1:
+                if temp_view not in initial_views:
+                    temp_view.close()
+                window.focus_view(active_view)
+                active_view.set_viewport_position(active_viewport)
+            else:
+                jump(matches[index])
+
+        def on_highlight(index):
+            if index != -1:
+                jump(matches[index])
+
+        if len(matches) > 1:
+            convert_path = lambda path: os.path.abspath(os.path.join(root, path))
+            data = [
+                ['%s:%d' % (convert_path(match['file']), int(match['line']))]
+                 for match in matches
+            ]
+            window.show_quick_panel(data, on_select, on_highlight=on_highlight)
+        elif matches:
+            jump(matches[0])
+        else:
+            print("No matches found for symbol.")
 
     def display_results(self, symbol, output):
         cscope_view = self.view.window().new_file()
